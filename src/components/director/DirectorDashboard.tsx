@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { TableICueEngine, TournamentState } from '../../lib/tournament/engine';
 import { TypeaheadPlayerSearch } from './TypeaheadPlayerSearch';
 import { VirtualChips } from '../score/VirtualChips';
-import { registerTeamAction, completeMatchAction, adjustChipsAction } from '../../lib/tournament/actions';
+import { registerTeamAction, completeMatchAction, adjustChipsAction, clearRefereeAction } from '../../lib/tournament/actions';
+import { sounds } from '../../lib/audio/soundEffects';
 
 interface DirectorDashboardProps {
   initialState: TournamentState;
@@ -14,7 +15,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
   const [engine, setEngine] = useState(() => new TableICueEngine(initialState));
   const [state, setState] = useState<TournamentState>(() => engine.getState());
 
-  // Registration Form State (Player 1 & Player 2 directly)
+  // Registration Form State
   const [player1Name, setPlayer1Name] = useState('');
   const [player1SL, setPlayer1SL] = useState<number>(3);
   const [player1Id, setPlayer1Id] = useState<string | undefined>();
@@ -29,6 +30,9 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
   const updateState = () => {
     setState({ ...engine.getState() });
   };
+
+  const pulseStats = engine.getPulseStats();
+  const refereeRequestedTables = state.tables.filter((t) => t.referee_requested);
 
   const handleRegisterTeam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +60,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
       return;
     }
 
-    // Optimistic Reset
+    // Reset Form
     setPlayer1Name('');
     setPlayer1SL(3);
     setPlayer1Id(undefined);
@@ -66,7 +70,6 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
     setPlayer2Id(undefined);
     updateState();
 
-    // Async Supabase Sync
     registerTeamAction({
       tournamentId: state.tournament.id,
       teamName: combinedName,
@@ -102,6 +105,12 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
     }
   };
 
+  const handleClearReferee = (tableId: string) => {
+    engine.clearReferee(tableId);
+    updateState();
+    clearRefereeAction(tableId);
+  };
+
   const handleAdjustChips = (teamId: string, delta: number) => {
     engine.adjustChips(teamId, delta);
     updateState();
@@ -120,7 +129,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
   const isCapExceeded = combinedSkillLevel > state.tournament.max_skill_cap;
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white p-6 max-w-7xl mx-auto space-y-8 font-sans">
+    <div className="min-h-screen bg-[#121212] text-white p-6 max-w-7xl mx-auto space-y-6 font-sans">
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#222] pb-5">
         <div>
@@ -140,9 +149,9 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3 bg-[#1A1A1A] border border-[#2a2a2a] px-4 py-2 rounded-xl">
             <div className="text-right">
-              <div className="text-xs font-bold text-white">Auto-Pilot Mode</div>
+              <div className="text-xs font-bold text-white">Auto-Pilot Matchmaker</div>
               <div className="text-[10px] text-[#888]">
-                {state.tournament.auto_pilot ? 'System auto-assigns next queue team' : 'Manual match assignments'}
+                {state.tournament.auto_pilot ? 'Auto-assigning open tables' : 'Manual match assignments'}
               </div>
             </div>
             <button
@@ -160,6 +169,85 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
           </div>
         </div>
       </div>
+
+      {/* TOURNAMENT PULSE STATS (Griff's Las Vegas Pulse) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="bg-[#181818] border border-[#2a2a2a] p-3.5 rounded-xl shadow">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-[#888]">Chips in Circulation</div>
+          <div className="text-xl font-black font-mono text-[#F538A0] mt-1">
+            {pulseStats.chipsRemaining} <span className="text-xs text-[#666]">/ {pulseStats.chipsTotal}</span>
+          </div>
+          <div className="text-[10px] text-[#777] mt-0.5 font-mono">
+            {pulseStats.chipsTotal - pulseStats.chipsRemaining} chips eliminated
+          </div>
+        </div>
+
+        <div className="bg-[#181818] border border-[#2a2a2a] p-3.5 rounded-xl shadow">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-[#888]">Playing Now</div>
+          <div className="text-xl font-black font-mono text-[#12B5CB] mt-1">
+            {pulseStats.playingNowCount}
+          </div>
+          <div className="text-[10px] text-[#777] mt-0.5 font-mono">
+            across {pulseStats.activeMatchesCount} active tables
+          </div>
+        </div>
+
+        <div className="bg-[#181818] border border-[#2a2a2a] p-3.5 rounded-xl shadow">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-[#888]">Waiting in Queue</div>
+          <div className="text-xl font-black font-mono text-yellow-400 mt-1">
+            {pulseStats.waitingQueueCount}
+          </div>
+          <div className="text-[10px] text-[#777] mt-0.5 font-mono">pairings on deck</div>
+        </div>
+
+        <div className="bg-[#181818] border border-[#2a2a2a] p-3.5 rounded-xl shadow">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-[#888]">Survivors</div>
+          <div className="text-xl font-black font-mono text-white mt-1">
+            {pulseStats.survivingPairings} <span className="text-xs text-[#666]">/ {pulseStats.totalPairings}</span>
+          </div>
+          <div className="text-[10px] text-[#777] mt-0.5 font-mono">
+            {pulseStats.eliminatedPairings} eliminated
+          </div>
+        </div>
+
+        <div className="bg-[#181818] border border-[#2a2a2a] p-3.5 rounded-xl shadow">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-[#888]">Avg Match Time</div>
+          <div className="text-xl font-black font-mono text-emerald-400 mt-1">
+            {pulseStats.avgMatchTimeMinutes}m
+          </div>
+          <div className="text-[10px] text-[#777] mt-0.5 font-mono">
+            {pulseStats.completedMatchesCount} racks completed
+          </div>
+        </div>
+      </div>
+
+      {/* REFEREE CALL ALERT BANNER */}
+      {refereeRequestedTables.length > 0 && (
+        <div className="bg-red-950/40 border border-red-500 rounded-xl p-4 flex items-center justify-between animate-pulse shadow-lg">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🚨</span>
+            <div>
+              <div className="font-bold text-sm text-red-300">
+                REFEREE REQUESTED AT TABLE {refereeRequestedTables.map((t) => `#${t.table_number}`).join(', ')}
+              </div>
+              <div className="text-xs text-red-400">
+                Players requested director assistance to watch a close hit / legal shot.
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {refereeRequestedTables.map((tbl) => (
+              <button
+                key={tbl.id}
+                onClick={() => handleClearReferee(tbl.id)}
+                className="bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition-all shadow"
+              >
+                Clear Table {tbl.table_number} Alert ✓
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* LEFT 2 COLUMNS: ACTIVE TABLES & MATCHES */}
@@ -190,12 +278,21 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
               return (
                 <div
                   key={table.id}
-                  className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-4 flex flex-col justify-between shadow-lg"
+                  className={`bg-[#181818] border rounded-xl p-4 flex flex-col justify-between shadow-lg transition-all ${
+                    table.referee_requested ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-[#2a2a2a]'
+                  }`}
                 >
                   <div className="flex items-center justify-between border-b border-[#222] pb-2 mb-3">
-                    <span className="font-mono font-black text-sm text-[#12B5CB]">
-                      TABLE #{table.table_number}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-black text-sm text-[#12B5CB]">
+                        TABLE #{table.table_number}
+                      </span>
+                      {table.referee_requested && (
+                        <span className="text-[10px] bg-red-600 text-white font-bold px-2 py-0.5 rounded animate-pulse">
+                          REFEREE CALLED
+                        </span>
+                      )}
+                    </div>
                     <span
                       className={`text-[11px] font-bold px-2 py-0.5 rounded ${
                         table.status === 'in_use'
@@ -216,7 +313,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
                             {teamA.player_1_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamA.player_1_sl})</span> & {teamA.player_2_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamA.player_2_sl})</span>
                           </div>
                           <div className="text-xs text-[#888] font-mono">
-                            Combined SL {teamA.combined_sl} • {teamA.chips_remaining} Chips
+                            Combined SL {teamA.combined_sl} • {teamA.chips_remaining} Chips ({teamA.wins || 0}W/{teamA.losses || 0}L)
                           </div>
                         </div>
                         <button
@@ -234,7 +331,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
                             {teamB.player_1_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamB.player_1_sl})</span> & {teamB.player_2_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamB.player_2_sl})</span>
                           </div>
                           <div className="text-xs text-[#888] font-mono">
-                            Combined SL {teamB.combined_sl} • {teamB.chips_remaining} Chips
+                            Combined SL {teamB.combined_sl} • {teamB.chips_remaining} Chips ({teamB.wins || 0}W/{teamB.losses || 0}L)
                           </div>
                         </div>
                         <button
@@ -273,6 +370,9 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
                         Combined SL {team.combined_sl}
                       </span>
                     </div>
+                    <div className="text-[11px] text-[#777] font-mono mt-0.5">
+                      Record: {team.wins || 0} Wins • {team.losses || 0} Losses
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-3">
@@ -305,7 +405,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
           </div>
         </div>
 
-        {/* RIGHT COLUMN: DIRECT PLAYER A & B REGISTRATION */}
+        {/* RIGHT COLUMN: DIRECT PLAYER REGISTRATION */}
         <div className="space-y-6">
           <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-5 shadow-lg">
             <div className="flex items-center justify-between border-b border-[#222] pb-3 mb-4">
@@ -316,7 +416,6 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
             </div>
 
             <form onSubmit={handleRegisterTeam} className="space-y-5">
-              {/* Player 1 Autocomplete & Manual Override */}
               <TypeaheadPlayerSearch
                 label="Player 1"
                 placeholder="Type name or select from APA..."
@@ -329,7 +428,6 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
                 }}
               />
 
-              {/* Player 2 Autocomplete & Manual Override */}
               <TypeaheadPlayerSearch
                 label="Player 2"
                 placeholder="Type partner name or select..."
@@ -342,7 +440,6 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
                 }}
               />
 
-              {/* Combined Skill Level & Cap Indicator */}
               {(player1Name || player2Name) && (
                 <div
                   className={`p-3.5 rounded-xl border text-xs flex justify-between items-center ${

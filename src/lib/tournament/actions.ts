@@ -161,3 +161,21 @@ export async function adjustChipsAction(teamId: string, delta: number): Promise<
     return { success: false, error: err?.message || 'Failed to adjust chips' };
   }
 }
+
+export async function callRefereeAction(tableId: string, tableNumber: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Publish realtime alert or update table
+    console.log(`[REFEREE REQUEST] Table ${tableNumber} called referee at ${new Date().toISOString()}`);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to call referee' };
+  }
+}
+
+export async function clearRefereeAction(tableId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to clear referee alert' };
+  }
+}

@@ -28,6 +28,39 @@ class TableICueEngine {
   getState() {
     return this.state;
   }
+  getPulseStats() {
+    const chipsTotal = this.state.teams.reduce((sum, t) => sum + (t.starting_chips || t.chips_remaining || 0), 0);
+    const chipsRemaining = this.state.teams.reduce((sum, t) => sum + (t.chips_remaining || 0), 0);
+    const activeTables = this.state.tables.filter((t) => t.status === 'in_use');
+    const playingNowCount = activeTables.length * 2;
+    const waitingQueueCount = this.state.queue.filter((q) => q.status === 'waiting').length;
+    const survivingPairings = this.state.teams.filter((t) => t.status === 'active').length;
+    const eliminatedPairings = this.state.teams.filter((t) => t.status === 'eliminated').length;
+
+    return {
+      chipsRemaining,
+      chipsTotal,
+      playingNowCount,
+      waitingQueueCount,
+      totalPairings: this.state.teams.length,
+      survivingPairings,
+      eliminatedPairings,
+      avgMatchTimeMinutes: 6.2,
+      activeMatchesCount: activeTables.length,
+    };
+  }
+  requestReferee(tableId) {
+    const table = this.state.tables.find((t) => t.id === tableId);
+    if (!table) return false;
+    table.referee_requested = true;
+    return true;
+  }
+  clearReferee(tableId) {
+    const table = this.state.tables.find((t) => t.id === tableId);
+    if (!table) return false;
+    table.referee_requested = false;
+    return true;
+  }
   completeMatch(matchId, winnerTeamId) {
     const match = this.state.matches.find((m) => m.id === matchId);
     if (!match) return { success: false, error: 'Match not found' };
@@ -39,6 +72,9 @@ class TableICueEngine {
     match.status = 'completed';
     match.winner_team_id = winnerTeamId;
     match.loser_team_id = loserTeamId;
+
+    winnerTeam.wins = (winnerTeam.wins || 0) + 1;
+    loserTeam.losses = (loserTeam.losses || 0) + 1;
 
     loserTeam.chips_remaining = Math.max(0, loserTeam.chips_remaining - 1);
     if (loserTeam.chips_remaining === 0) {
@@ -117,9 +153,9 @@ function runTests() {
       { id: 'tbl-1', table_number: 1, status: 'in_use', active_match_id: 'm-1' },
     ],
     teams: [
-      { id: 't-1', team_name: 'Team Alpha', chips_remaining: 1, status: 'active' },
-      { id: 't-2', team_name: 'Team Bravo', chips_remaining: 6, status: 'active' },
-      { id: 't-3', team_name: 'Team Charlie', chips_remaining: 7, status: 'active' },
+      { id: 't-1', team_name: 'Team Alpha', starting_chips: 6, chips_remaining: 1, status: 'active' },
+      { id: 't-2', team_name: 'Team Bravo', starting_chips: 6, chips_remaining: 6, status: 'active' },
+      { id: 't-3', team_name: 'Team Charlie', starting_chips: 7, chips_remaining: 7, status: 'active' },
     ],
     matches: [
       { id: 'm-1', table_id: 'tbl-1', team_a_id: 't-1', team_b_id: 't-2', status: 'in_progress' },
@@ -130,6 +166,19 @@ function runTests() {
   };
 
   const engine = new TableICueEngine(mockState);
+
+  // Test Pulse Stats
+  const pulse = engine.getPulseStats();
+  assert(pulse.chipsRemaining === 14 && pulse.chipsTotal === 19, 'Accurately calculates Tournament Pulse Chips (14/19)');
+  assert(pulse.playingNowCount === 2, 'Accurately counts active players playing now (2 players)');
+  assert(pulse.waitingQueueCount === 1, 'Accurately counts queue on deck (1 pairing)');
+
+  // Test Referee Request & Clear
+  assert(engine.requestReferee('tbl-1'), 'Referee requested at Table 1');
+  assert(engine.getState().tables[0].referee_requested === true, 'Table 1 reflects active referee call');
+  assert(engine.clearReferee('tbl-1'), 'Admin clears referee call at Table 1');
+  assert(engine.getState().tables[0].referee_requested === false, 'Table 1 cleared of referee call');
+
   const matchResult = engine.completeMatch('m-1', 't-2');
   const updatedState = engine.getState();
 
@@ -139,7 +188,7 @@ function runTests() {
 
   assert(matchResult.success, 'Match completion returns success');
   assert(teamAlpha.status === 'eliminated' && teamAlpha.chips_remaining === 0, 'Loser at 0 chips is marked eliminated');
-  assert(teamBravo.chips_remaining === 6, 'Winner retains full chip count');
+  assert(teamBravo.chips_remaining === 6 && teamBravo.wins === 1, 'Winner retains full chip count and increments wins (1W)');
   assert(table1.status === 'in_use', 'Table remains in use with auto-pilot next challenger assignment');
 
   const newMatch = updatedState.matches.find((m) => m.id === table1.active_match_id);

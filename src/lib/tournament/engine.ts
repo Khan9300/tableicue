@@ -1,4 +1,4 @@
-import { Team, Table, Match, QueueItem, Tournament } from '../types/tournament';
+import { Team, Table, Match, QueueItem, Tournament, TournamentPulseStats } from '../types/tournament';
 import { calculateStartingChips, validateSkillCap } from './handicap';
 
 export interface TournamentState {
@@ -21,6 +21,50 @@ export class TableICueEngine {
 
   public getState(): TournamentState {
     return this.state;
+  }
+
+  /**
+   * Calculates live tournament pulse stats (Griff's Las Vegas model).
+   */
+  public getPulseStats(): TournamentPulseStats {
+    const chipsTotal = this.state.teams.reduce((sum, t) => sum + (t.starting_chips || 0), 0);
+    const chipsRemaining = this.state.teams.reduce((sum, t) => sum + (t.chips_remaining || 0), 0);
+
+    const activeTables = this.state.tables.filter((t) => t.status === 'in_use');
+    const playingNowCount = activeTables.length * 2; // 2 pairings per active table
+    const waitingQueueCount = this.state.queue.filter((q) => q.status === 'waiting').length;
+
+    const survivingPairings = this.state.teams.filter((t) => t.status === 'active').length;
+    const eliminatedPairings = this.state.teams.filter((t) => t.status === 'eliminated').length;
+
+    const completedMatches = this.state.matches.filter((m) => m.status === 'completed');
+    let totalMinutes = 0;
+    let matchTimeCount = 0;
+
+    for (const m of completedMatches) {
+      if (m.started_at && m.ended_at) {
+        const start = new Date(m.started_at).getTime();
+        const end = new Date(m.ended_at).getTime();
+        const diffMinutes = Math.max(1, (end - start) / 60000);
+        totalMinutes += diffMinutes;
+        matchTimeCount++;
+      }
+    }
+
+    const avgMatchTimeMinutes = matchTimeCount > 0 ? parseFloat((totalMinutes / matchTimeCount).toFixed(1)) : 6.5;
+
+    return {
+      chipsRemaining,
+      chipsTotal: Math.max(chipsTotal, chipsRemaining),
+      playingNowCount,
+      waitingQueueCount,
+      totalPairings: this.state.teams.length,
+      survivingPairings,
+      eliminatedPairings,
+      avgMatchTimeMinutes,
+      completedMatchesCount: completedMatches.length,
+      activeMatchesCount: activeTables.length,
+    };
   }
 
   /**
@@ -64,6 +108,8 @@ export class TableICueEngine {
       starting_chips: startingChips,
       chips_remaining: startingChips,
       status: 'active',
+      wins: 0,
+      losses: 0,
     };
 
     this.state.teams.push(newTeam);
@@ -108,6 +154,10 @@ export class TableICueEngine {
     match.loser_team_id = loserTeamId;
     match.ended_at = new Date().toISOString();
 
+    // Update Win/Loss counters
+    winnerTeam.wins = (winnerTeam.wins || 0) + 1;
+    loserTeam.losses = (loserTeam.losses || 0) + 1;
+
     // 2. Decrement Loser's Virtual Chips
     loserTeam.chips_remaining = Math.max(0, loserTeam.chips_remaining - 1);
 
@@ -131,33 +181,38 @@ export class TableICueEngine {
     const table = this.state.tables.find((tbl) => tbl.id === match.table_id);
     let newMatch: Match | undefined;
 
-    if (table && this.state.tournament.auto_pilot) {
-      // Dequeue next waiting team
-      const nextQueueItemIndex = this.state.queue.findIndex((q) => q.status === 'waiting');
+    if (table) {
+      // Clear any active referee requests on this table
+      table.referee_requested = false;
 
-      if (nextQueueItemIndex !== -1) {
-        const nextTeamItem = this.state.queue[nextQueueItemIndex];
-        this.state.queue.splice(nextQueueItemIndex, 1);
+      if (this.state.tournament.auto_pilot) {
+        // Dequeue next waiting team
+        const nextQueueItemIndex = this.state.queue.findIndex((q) => q.status === 'waiting');
 
-        newMatch = {
-          id: `match_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-          tournament_id: this.state.tournament.id,
-          table_id: table.id,
-          team_a_id: winnerTeam.id, // Winner stays on table
-          team_b_id: nextTeamItem.team_id, // Next in queue
-          team_a_score: 0,
-          team_b_score: 0,
-          race_to: 1,
-          status: 'in_progress',
-          started_at: new Date().toISOString(),
-        };
+        if (nextQueueItemIndex !== -1) {
+          const nextTeamItem = this.state.queue[nextQueueItemIndex];
+          this.state.queue.splice(nextQueueItemIndex, 1);
 
-        this.state.matches.push(newMatch);
-        table.active_match_id = newMatch.id;
-        table.status = 'in_use';
-      } else {
-        table.status = 'open';
-        table.active_match_id = undefined;
+          newMatch = {
+            id: `match_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+            tournament_id: this.state.tournament.id,
+            table_id: table.id,
+            team_a_id: winnerTeam.id, // Winner stays on table
+            team_b_id: nextTeamItem.team_id, // Next in queue
+            team_a_score: 0,
+            team_b_score: 0,
+            race_to: 1,
+            status: 'in_progress',
+            started_at: new Date().toISOString(),
+          };
+
+          this.state.matches.push(newMatch);
+          table.active_match_id = newMatch.id;
+          table.status = 'in_use';
+        } else {
+          table.status = 'open';
+          table.active_match_id = undefined;
+        }
       }
     }
 
@@ -169,6 +224,28 @@ export class TableICueEngine {
     }
 
     return { success: true, newMatch };
+  }
+
+  /**
+   * Request referee / admin assistance at a table.
+   */
+  public requestReferee(tableId: string): boolean {
+    const table = this.state.tables.find((t) => t.id === tableId || t.table_number === parseInt(tableId, 10));
+    if (!table) return false;
+    table.referee_requested = true;
+    table.referee_request_time = new Date().toISOString();
+    return true;
+  }
+
+  /**
+   * Clear referee / admin alert for a table.
+   */
+  public clearReferee(tableId: string): boolean {
+    const table = this.state.tables.find((t) => t.id === tableId || t.table_number === parseInt(tableId, 10));
+    if (!table) return false;
+    table.referee_requested = false;
+    table.referee_request_time = undefined;
+    return true;
   }
 
   /**

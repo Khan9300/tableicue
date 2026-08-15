@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { TournamentState } from '../../lib/tournament/engine';
+import { TournamentState, TableICueEngine } from '../../lib/tournament/engine';
 import { VirtualChips } from '../score/VirtualChips';
 
 interface BroadcastViewProps {
@@ -10,6 +10,9 @@ interface BroadcastViewProps {
 
 export const BroadcastView: React.FC<BroadcastViewProps> = ({ state }) => {
   const { tournament, tables, teams, matches, queue } = state;
+
+  const engine = new TableICueEngine(state);
+  const pulseStats = engine.getPulseStats();
 
   const activeMatches = tables.map((tbl) => {
     const match = matches.find((m) => m.id === tbl.active_match_id && m.status === 'in_progress');
@@ -39,9 +42,9 @@ export const BroadcastView: React.FC<BroadcastViewProps> = ({ state }) => {
     .sort((a, b) => (a.elimination_rank || 999) - (b.elimination_rank || 999));
 
   return (
-    <div className="min-h-screen bg-[#0D0D0D] text-white p-6 font-sans select-none flex flex-col justify-between">
+    <div className="min-h-screen bg-[#0D0D0D] text-white p-6 font-sans select-none flex flex-col justify-between space-y-5">
       {/* Header Bar */}
-      <header className="border-b border-[#222] pb-4 mb-6 flex items-center justify-between">
+      <header className="border-b border-[#222] pb-4 flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#12B5CB] to-[#F538A0] flex items-center justify-center font-black text-xl text-black shadow-lg">
             🎱
@@ -60,10 +63,26 @@ export const BroadcastView: React.FC<BroadcastViewProps> = ({ state }) => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="bg-[#1A1A1A] border border-[#2a2a2a] px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-bold">
+        {/* Live Broadcast Badge & Stats Pills */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="bg-[#181818] border border-[#2c2c2c] px-3.5 py-1.5 rounded-xl font-mono text-xs flex items-center gap-2">
+            <span className="text-[#888]">CHIPS:</span>
+            <span className="text-[#F538A0] font-bold">{pulseStats.chipsRemaining}/{pulseStats.chipsTotal}</span>
+          </div>
+
+          <div className="bg-[#181818] border border-[#2c2c2c] px-3.5 py-1.5 rounded-xl font-mono text-xs flex items-center gap-2">
+            <span className="text-[#888]">ACTIVE:</span>
+            <span className="text-[#12B5CB] font-bold">{pulseStats.playingNowCount} ({pulseStats.waitingQueueCount} waiting)</span>
+          </div>
+
+          <div className="bg-[#181818] border border-[#2c2c2c] px-3.5 py-1.5 rounded-xl font-mono text-xs flex items-center gap-2">
+            <span className="text-[#888]">AVG MATCH:</span>
+            <span className="text-emerald-400 font-bold">{pulseStats.avgMatchTimeMinutes}m</span>
+          </div>
+
+          <div className="bg-[#1A1A1A] border border-[#2a2a2a] px-3.5 py-1.5 rounded-xl flex items-center gap-2 text-xs font-bold font-mono">
             <span className="w-2.5 h-2.5 rounded-full bg-[#12B5CB] animate-pulse"></span>
-            LIVE BROADCAST MODE
+            LIVE BROADCAST
           </div>
         </div>
       </header>
@@ -104,7 +123,9 @@ export const BroadcastView: React.FC<BroadcastViewProps> = ({ state }) => {
                         <div className="font-bold text-sm text-white truncate">
                           {teamA.player_1_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamA.player_1_sl})</span> & {teamA.player_2_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamA.player_2_sl})</span>
                         </div>
-                        <div className="text-xs text-[#888] font-mono">Combined SL {teamA.combined_sl}</div>
+                        <div className="text-xs text-[#888] font-mono">
+                          Combined SL {teamA.combined_sl} • Record {teamA.wins || 0}W/{teamA.losses || 0}L
+                        </div>
                       </div>
                       <div className="text-right ml-2">
                         <span className="text-xs text-[#F538A0] font-mono font-bold">{teamA.chips_remaining} Chips</span>
@@ -118,7 +139,9 @@ export const BroadcastView: React.FC<BroadcastViewProps> = ({ state }) => {
                         <div className="font-bold text-sm text-white truncate">
                           {teamB.player_1_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamB.player_1_sl})</span> & {teamB.player_2_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamB.player_2_sl})</span>
                         </div>
-                        <div className="text-xs text-[#888] font-mono">Combined SL {teamB.combined_sl}</div>
+                        <div className="text-xs text-[#888] font-mono">
+                          Combined SL {teamB.combined_sl} • Record {teamB.wins || 0}W/{teamB.losses || 0}L
+                        </div>
                       </div>
                       <div className="text-right ml-2">
                         <span className="text-xs text-[#F538A0] font-mono font-bold">{teamB.chips_remaining} Chips</span>
@@ -171,7 +194,7 @@ export const BroadcastView: React.FC<BroadcastViewProps> = ({ state }) => {
                         {team?.player_1_name} <span className="text-[#12B5CB] text-xs font-mono">(SL{team?.player_1_sl})</span> & {team?.player_2_name} <span className="text-[#12B5CB] text-xs font-mono">(SL{team?.player_2_sl})</span>
                       </div>
                       <div className="text-xs text-[#888] font-mono">
-                        Combined SL {team?.combined_sl}
+                        Combined SL {team?.combined_sl} • Record {team?.wins || 0}W/{team?.losses || 0}L
                       </div>
                     </div>
                   </div>
@@ -212,7 +235,9 @@ export const BroadcastView: React.FC<BroadcastViewProps> = ({ state }) => {
                     <div className="font-bold text-sm text-white">
                       {team.player_1_name} <span className="text-[#12B5CB] text-xs font-mono">(SL{team.player_1_sl})</span> & {team.player_2_name} <span className="text-[#12B5CB] text-xs font-mono">(SL{team.player_2_sl})</span>
                     </div>
-                    <div className="text-xs text-[#888] font-mono">Combined SL {team.combined_sl}</div>
+                    <div className="text-xs text-[#888] font-mono">
+                      Combined SL {team.combined_sl} • {team.wins || 0}W/{team.losses || 0}L
+                    </div>
                   </div>
                 </div>
                 <div>

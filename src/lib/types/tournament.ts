@@ -33,6 +33,8 @@ export interface Team {
   chips_remaining: number;
   status: TeamStatus;
   elimination_rank?: number;
+  wins?: number;
+  losses?: number;
 }
 
 export interface Table {
@@ -42,6 +44,8 @@ export interface Table {
   label?: string;
   status: TableStatus;
   active_match_id?: string;
+  referee_requested?: boolean;
+  referee_request_time?: string;
 }
 
 export interface Match {
@@ -68,6 +72,19 @@ export interface QueueItem {
   entered_queue_at: string;
   assigned_match_id?: string;
   team?: Team;
+}
+
+export interface TournamentPulseStats {
+  chipsRemaining: number;
+  chipsTotal: number;
+  playingNowCount: number;
+  waitingQueueCount: number;
+  totalPairings: number;
+  survivingPairings: number;
+  eliminatedPairings: number;
+  avgMatchTimeMinutes: number;
+  completedMatchesCount: number;
+  activeMatchesCount: number;
 }
 
 export interface Tournament {

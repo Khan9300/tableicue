@@ -120,6 +120,33 @@ class SoundEffectsManager {
       osc.stop(now + 0.25);
     });
   }
+
+  /**
+   * Two-tone urgent referee call alert for Tournament Director & Table monitors.
+   */
+  public playRefereeCall(): void {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const tones = [880, 1174.66, 880, 1174.66]; // A5, D6, A5, D6
+    tones.forEach((freq, i) => {
+      const now = ctx.currentTime + i * 0.12;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, now);
+
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.1);
+    });
+  }
 }
 
 export const sounds = new SoundEffectsManager();
