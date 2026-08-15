@@ -1,6 +1,6 @@
 // Standalone JS verification of Table i-Cue Tournament Engine Logic
 
-function validateSkillCap(player1SL, player2SL, maxCap = 10) {
+function validateSkillCap(player1SL, player2SL, maxCap = 12) {
   const combinedSL = player1SL + player2SL;
   if (combinedSL > maxCap) {
     return {
@@ -21,11 +21,13 @@ function calculateStartingChips(combinedSL, policy = 'handicap_matrix', defaultC
   } else if (combinedSL <= 8) {
     chips = 4; // Combined SL 7-8 -> 4 Chips
   } else if (combinedSL <= 10) {
-    chips = 3; // Combined SL 9-10 -> 3 Chips
+    chips = 3; // Combined SL 9-10 (Two SL 5s) -> 3 Chips
+  } else if (combinedSL === 11) {
+    chips = 2; // Combined SL 11 (e.g. SL 6 + SL 5) -> 2 Chips
   } else {
-    chips = 2; // Combined SL 11+ -> 2 Chips
+    chips = 1; // Combined SL >= 12 (Two SL 6s) -> 1 Chip
   }
-  return Math.min(MAX_CHIPS, chips);
+  return Math.min(MAX_CHIPS, Math.max(1, chips));
 }
 
 class TableICueEngine {
@@ -136,37 +138,38 @@ function runTests() {
   }
 
   // 1. Handicap & Max Cap Tests
-  const validCap = validateSkillCap(5, 4, 10);
-  assert(validCap.valid && validCap.combinedSL === 9, 'Valid Scotch Doubles team under Max 10 cap');
+  const validTwoSL6 = validateSkillCap(6, 6, 12);
+  assert(validTwoSL6.valid && validTwoSL6.combinedSL === 12, 'Two SL 6s valid under Max 12 cap');
 
-  const invalidCap = validateSkillCap(6, 5, 10);
-  assert(!invalidCap.valid && invalidCap.combinedSL === 11, 'Enforce Max 10 cap (reject combined SL 11)');
+  const validTwoSL5 = validateSkillCap(5, 5, 12);
+  assert(validTwoSL5.valid && validTwoSL5.combinedSL === 10, 'Two SL 5s valid (combined SL 10)');
 
-  // 2. Chip Allocation Matrix Tests (Max 5 Chips Rule)
-  assert(calculateStartingChips(5) === 5, 'Combined SL <= 6 receives MAX 5 starting chips');
-  assert(calculateStartingChips(6) === 5, 'Combined SL 6 receives MAX 5 starting chips');
-  assert(calculateStartingChips(7) === 4, 'Combined SL 7-8 receives 4 starting chips');
-  assert(calculateStartingChips(8) === 4, 'Combined SL 8 receives 4 starting chips');
-  assert(calculateStartingChips(9) === 3, 'Combined SL 9-10 receives 3 starting chips');
-  assert(calculateStartingChips(10) === 3, 'Combined SL 10 receives 3 starting chips');
-  assert(calculateStartingChips(12) === 2, 'Combined SL 12 receives 2 starting chips');
-  assert(calculateStartingChips(4, 'equal', 10) === 5, 'Equal policy enforces MAX 5 chips ceiling');
+  // 2. Exact Real-World Chip Allocation Matrix Tests
+  assert(calculateStartingChips(12) === 1, 'Two SL 6s (combined SL 12) receive exactly 1 CHIP');
+  assert(calculateStartingChips(10) === 3, 'Two SL 5s (combined SL 10) receive exactly 3 CHIPS');
+  assert(calculateStartingChips(9) === 3, 'Combined SL 9 (SL 5 + SL 4) receives 3 CHIPS');
+  assert(calculateStartingChips(11) === 2, 'Combined SL 11 (SL 6 + SL 5) receives 2 CHIPS');
+  assert(calculateStartingChips(8) === 4, 'Combined SL 8 (SL 4 + SL 4) receives 4 CHIPS');
+  assert(calculateStartingChips(7) === 4, 'Combined SL 7 (SL 4 + SL 3) receives 4 CHIPS');
+  assert(calculateStartingChips(6) === 5, 'Combined SL 6 (SL 3 + SL 3) receives MAX 5 CHIPS');
+  assert(calculateStartingChips(5) === 5, 'Combined SL 5 (SL 3 + SL 2) receives MAX 5 CHIPS');
+  assert(calculateStartingChips(4, 'equal', 10) === 5, 'Equal policy clamps to MAX 5 CHIPS');
 
   // 3. State Machine & Match Resolution Tests
   const mockState = {
     tournament: {
       id: 'tourney-test',
       name: 'Test Tournament',
-      max_skill_cap: 10,
+      max_skill_cap: 12,
       auto_pilot: true,
     },
     tables: [
       { id: 'tbl-1', table_number: 1, status: 'in_use', active_match_id: 'm-1' },
     ],
     teams: [
-      { id: 't-1', team_name: 'Team Alpha', starting_chips: 3, chips_remaining: 1, status: 'active' },
-      { id: 't-2', team_name: 'Team Bravo', starting_chips: 5, chips_remaining: 5, status: 'active' },
-      { id: 't-3', team_name: 'Team Charlie', starting_chips: 4, chips_remaining: 4, status: 'active' },
+      { id: 't-1', team_name: 'SL6 Duo', starting_chips: 1, chips_remaining: 1, status: 'active' },
+      { id: 't-2', team_name: 'SL5 Duo (Fahad & Partner)', starting_chips: 3, chips_remaining: 3, status: 'active' },
+      { id: 't-3', team_name: 'SL4 Duo', starting_chips: 4, chips_remaining: 4, status: 'active' },
     ],
     matches: [
       { id: 'm-1', table_id: 'tbl-1', team_a_id: 't-1', team_b_id: 't-2', status: 'in_progress' },
@@ -180,7 +183,7 @@ function runTests() {
 
   // Test Pulse Stats
   const pulse = engine.getPulseStats();
-  assert(pulse.chipsRemaining === 10 && pulse.chipsTotal === 12, 'Accurately calculates Tournament Pulse Chips (10/12)');
+  assert(pulse.chipsRemaining === 8 && pulse.chipsTotal === 8, 'Accurately calculates Tournament Pulse Chips (8/8)');
   assert(pulse.playingNowCount === 2, 'Accurately counts active players playing now (2 players)');
   assert(pulse.waitingQueueCount === 1, 'Accurately counts queue on deck (1 pairing)');
 
@@ -193,19 +196,19 @@ function runTests() {
   const matchResult = engine.completeMatch('m-1', 't-2');
   const updatedState = engine.getState();
 
-  const teamAlpha = updatedState.teams.find((t) => t.id === 't-1');
-  const teamBravo = updatedState.teams.find((t) => t.id === 't-2');
+  const sl6Team = updatedState.teams.find((t) => t.id === 't-1');
+  const sl5Team = updatedState.teams.find((t) => t.id === 't-2');
   const table1 = updatedState.tables.find((tbl) => tbl.id === 'tbl-1');
 
   assert(matchResult.success, 'Match completion returns success');
-  assert(teamAlpha.status === 'eliminated' && teamAlpha.chips_remaining === 0, 'Loser at 0 chips is marked eliminated');
-  assert(teamBravo.chips_remaining === 5 && teamBravo.wins === 1, 'Winner retains full chip count and increments wins (1W)');
+  assert(sl6Team.status === 'eliminated' && sl6Team.chips_remaining === 0, 'SL 6 Duo at 0 chips is eliminated after single loss');
+  assert(sl5Team.chips_remaining === 3 && sl5Team.wins === 1, 'SL 5 Duo winner retains full 3 chips and records 1W');
   assert(table1.status === 'in_use', 'Table remains in use with auto-pilot next challenger assignment');
 
   const newMatch = updatedState.matches.find((m) => m.id === table1.active_match_id);
   assert(
     newMatch.team_a_id === 't-2' && newMatch.team_b_id === 't-3',
-    'Auto-pilot queued Team Charlie (t-3) against reigning champion Team Bravo (t-2)'
+    'Auto-pilot queued SL 4 Duo (t-3) against reigning champion SL 5 Duo (t-2)'
   );
 
   console.log(`\n📊 Summary: ${passed}/${total} tests passed.`);
