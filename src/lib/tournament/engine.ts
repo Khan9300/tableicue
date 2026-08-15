@@ -1,4 +1,4 @@
-import { Team, Table, Match, QueueItem, Tournament, TournamentPulseStats } from '../types/tournament';
+import { Team, Table, Match, QueueItem, Tournament, TournamentPulseStats, TournamentScenario } from '../types/tournament';
 import { calculateStartingChips, validateSkillCap } from './handicap';
 
 export interface TournamentState {
@@ -21,6 +21,34 @@ export class TableICueEngine {
 
   public getState(): TournamentState {
     return this.state;
+  }
+
+  /**
+   * Apply a pre-configured tournament scenario (e.g. 9-Ball, 8-Ball, Winner Stays, Singles, 6-Tables).
+   */
+  public applyScenario(scenario: TournamentScenario): void {
+    this.state.tournament.name = scenario.name;
+    this.state.tournament.game_type = scenario.gameType;
+    this.state.tournament.format = scenario.format;
+    this.state.tournament.max_skill_cap = scenario.maxSkillCap;
+    this.state.tournament.starting_chips_policy = scenario.startingChipsPolicy;
+    this.state.tournament.table_count = scenario.defaultTablesCount;
+
+    // Ensure state has the requested number of tables (e.g. 6 tables)
+    if (this.state.tables.length < scenario.defaultTablesCount) {
+      const needed = scenario.defaultTablesCount - this.state.tables.length;
+      const startNum = this.state.tables.length + 1;
+      for (let i = 0; i < needed; i++) {
+        const tableNum = startNum + i;
+        this.state.tables.push({
+          id: `tbl-${tableNum}`,
+          tournament_id: this.state.tournament.id,
+          table_number: tableNum,
+          label: `Lucky Cue Table ${tableNum}`,
+          status: 'open',
+        });
+      }
+    }
   }
 
   /**
@@ -51,7 +79,7 @@ export class TableICueEngine {
       }
     }
 
-    const avgMatchTimeMinutes = matchTimeCount > 0 ? parseFloat((totalMinutes / matchTimeCount).toFixed(1)) : 6.5;
+    const avgMatchTimeMinutes = matchTimeCount > 0 ? parseFloat((totalMinutes / matchTimeCount).toFixed(1)) : 6.2;
 
     return {
       chipsRemaining,
@@ -73,24 +101,28 @@ export class TableICueEngine {
   public registerTeam(params: {
     teamName: string;
     player1Name: string;
-    player2Name: string;
+    player2Name?: string;
     player1SL: number;
-    player2SL: number;
+    player2SL?: number;
     player1Id?: string;
     player2Id?: string;
   }): { success: boolean; team?: Team; error?: string } {
+    const isSingles = !params.player2Name || params.player2Name.trim() === '';
+    const p2SL = isSingles ? 0 : (params.player2SL || 3);
+
     const validation = validateSkillCap(
       params.player1SL,
-      params.player2SL,
+      p2SL,
       this.state.tournament.max_skill_cap
     );
 
-    if (!validation.valid) {
+    if (!validation.valid && !isSingles) {
       return { success: false, error: validation.error };
     }
 
+    const combinedSL = isSingles ? params.player1SL : validation.combinedSL;
     const startingChips = calculateStartingChips(
-      validation.combinedSL,
+      combinedSL,
       this.state.tournament.starting_chips_policy
     );
 
@@ -104,7 +136,7 @@ export class TableICueEngine {
       player_2_name: params.player2Name,
       player_1_sl: params.player1SL,
       player_2_sl: params.player2SL,
-      combined_sl: validation.combinedSL,
+      combined_sl: combinedSL,
       starting_chips: startingChips,
       chips_remaining: startingChips,
       status: 'active',
@@ -136,7 +168,7 @@ export class TableICueEngine {
 
   /**
    * Completes a match, penalizes the loser, moves loser to queue end (or eliminates),
-   * keeps winner on table, and pulls next opponent from the queue.
+   * keeps winner on table, and pulls next opponent from the pipeline.
    */
   public completeMatch(matchId: string, winnerTeamId: string): { success: boolean; newMatch?: Match; error?: string } {
     const match = this.state.matches.find((m) => m.id === matchId);
@@ -177,16 +209,15 @@ export class TableICueEngine {
       });
     }
 
-    // 3. Find Table and Assign Next Challenger
+    // 3. Find Table and Assign Next Challenger from Pipeline
     const table = this.state.tables.find((tbl) => tbl.id === match.table_id);
     let newMatch: Match | undefined;
 
     if (table) {
-      // Clear any active referee requests on this table
       table.referee_requested = false;
 
       if (this.state.tournament.auto_pilot) {
-        // Dequeue next waiting team
+        // Dequeue next waiting team in pipeline
         const nextQueueItemIndex = this.state.queue.findIndex((q) => q.status === 'waiting');
 
         if (nextQueueItemIndex !== -1) {
@@ -197,8 +228,8 @@ export class TableICueEngine {
             id: `match_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
             tournament_id: this.state.tournament.id,
             table_id: table.id,
-            team_a_id: winnerTeam.id, // Winner stays on table
-            team_b_id: nextTeamItem.team_id, // Next in queue
+            team_a_id: winnerTeam.id, // Winner stays on table & racks up
+            team_b_id: nextTeamItem.team_id, // Next opponent in pipeline
             team_a_score: 0,
             team_b_score: 0,
             race_to: 1,
@@ -216,7 +247,7 @@ export class TableICueEngine {
       }
     }
 
-    // Check if tournament concluded (only 1 active team left)
+    // Check if tournament concluded
     const remainingActiveTeams = this.state.teams.filter((t) => t.status === 'active');
     if (remainingActiveTeams.length === 1) {
       this.state.tournament.status = 'completed';
@@ -227,7 +258,7 @@ export class TableICueEngine {
   }
 
   /**
-   * Request referee / admin assistance at a table.
+   * Request referee assistance at a table.
    */
   public requestReferee(tableId: string): boolean {
     const table = this.state.tables.find((t) => t.id === tableId || t.table_number === parseInt(tableId, 10));
@@ -238,7 +269,7 @@ export class TableICueEngine {
   }
 
   /**
-   * Clear referee / admin alert for a table.
+   * Clear referee alert for a table.
    */
   public clearReferee(tableId: string): boolean {
     const table = this.state.tables.find((t) => t.id === tableId || t.table_number === parseInt(tableId, 10));

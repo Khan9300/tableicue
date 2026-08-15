@@ -1,5 +1,13 @@
 export type GameType = '8_ball' | '9_ball';
-export type TournamentFormat = 'scotch_doubles_chip' | 'singles_chip' | 'double_elim';
+export type TournamentFormat =
+  | 'winner_stays_queue' // King of the Table / Winner stays on table, racks up for next queued challenger
+  | 'scotch_doubles_8ball'
+  | 'scotch_doubles_9ball'
+  | 'singles_8ball'
+  | 'singles_9ball'
+  | 'scotch_doubles_chip'
+  | 'double_elim';
+
 export type TournamentStatus = 'registering' | 'in_progress' | 'completed' | 'paused';
 export type TeamStatus = 'active' | 'eliminated';
 export type TableStatus = 'open' | 'in_use' | 'maintenance';
@@ -25,9 +33,9 @@ export interface Team {
   player_1_id?: string;
   player_2_id?: string;
   player_1_name: string;
-  player_2_name: string;
+  player_2_name?: string; // Optional for singles
   player_1_sl: number;
-  player_2_sl: number;
+  player_2_sl?: number;   // Optional for singles
   combined_sl: number;
   starting_chips: number;
   chips_remaining: number;
@@ -87,6 +95,18 @@ export interface TournamentPulseStats {
   activeMatchesCount: number;
 }
 
+export interface TournamentScenario {
+  id: string;
+  name: string;
+  description: string;
+  gameType: GameType;
+  format: TournamentFormat;
+  maxSkillCap: number;
+  defaultTablesCount: number;
+  startingChipsPolicy: 'handicap_matrix' | 'equal';
+  isWinnerStays: boolean;
+}
+
 export interface Tournament {
   id: string;
   name: string;
@@ -97,6 +117,7 @@ export interface Tournament {
   venue_name: string;
   status: TournamentStatus;
   auto_pilot: boolean;
+  table_count?: number;
   created_at: string;
   started_at?: string;
   ended_at?: string;

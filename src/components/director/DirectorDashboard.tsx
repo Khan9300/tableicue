@@ -5,7 +5,8 @@ import { TableICueEngine, TournamentState } from '../../lib/tournament/engine';
 import { TypeaheadPlayerSearch } from './TypeaheadPlayerSearch';
 import { VirtualChips } from '../score/VirtualChips';
 import { registerTeamAction, completeMatchAction, adjustChipsAction, clearRefereeAction } from '../../lib/tournament/actions';
-import { sounds } from '../../lib/audio/soundEffects';
+import { TOURNAMENT_SCENARIOS } from '../../lib/tournament/scenarios';
+import { TournamentScenario } from '../../lib/types/tournament';
 
 interface DirectorDashboardProps {
   initialState: TournamentState;
@@ -14,6 +15,7 @@ interface DirectorDashboardProps {
 export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialState }) => {
   const [engine, setEngine] = useState(() => new TableICueEngine(initialState));
   const [state, setState] = useState<TournamentState>(() => engine.getState());
+  const [isScenarioModalOpen, setIsScenarioModalOpen] = useState(false);
 
   // Registration Form State
   const [player1Name, setPlayer1Name] = useState('');
@@ -33,30 +35,41 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
 
   const pulseStats = engine.getPulseStats();
   const refereeRequestedTables = state.tables.filter((t) => t.referee_requested);
+  const isSinglesMode = state.tournament.format.includes('singles');
+
+  const handleSelectScenario = (scenario: TournamentScenario) => {
+    engine.applyScenario(scenario);
+    updateState();
+    setIsScenarioModalOpen(false);
+  };
 
   const handleRegisterTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!player1Name.trim() || !player2Name.trim()) {
-      setErrorMsg('Please enter or select both Player 1 and Player 2.');
+    if (!player1Name.trim()) {
+      setErrorMsg('Please enter or select Player 1.');
+      return;
+    }
+    if (!isSinglesMode && !player2Name.trim()) {
+      setErrorMsg('Please enter or select Player 2 (or switch to a Singles scenario).');
       return;
     }
 
-    const combinedName = `${player1Name} & ${player2Name}`;
+    const combinedName = isSinglesMode ? player1Name : `${player1Name} & ${player2Name}`;
 
     const result = engine.registerTeam({
       teamName: combinedName,
       player1Name: player1Name.trim(),
-      player2Name: player2Name.trim(),
+      player2Name: isSinglesMode ? undefined : player2Name.trim(),
       player1SL: player1SL || 3,
-      player2SL: player2SL || 3,
+      player2SL: isSinglesMode ? undefined : (player2SL || 3),
       player1Id,
       player2Id,
     });
 
     if (!result.success) {
-      setErrorMsg(result.error || 'Failed to register team');
+      setErrorMsg(result.error || 'Failed to register pairing');
       return;
     }
 
@@ -125,44 +138,59 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
     updateState();
   };
 
-  const combinedSkillLevel = (player1SL || 0) + (player2SL || 0);
-  const isCapExceeded = combinedSkillLevel > state.tournament.max_skill_cap;
+  const combinedSkillLevel = (player1SL || 0) + (isSinglesMode ? 0 : (player2SL || 0));
+  const isCapExceeded = !isSinglesMode && combinedSkillLevel > state.tournament.max_skill_cap;
 
   return (
     <div className="min-h-screen bg-[#121212] text-white p-6 max-w-7xl mx-auto space-y-6 font-sans">
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#222] pb-5">
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <span className="text-2xl">🎱</span>
             <h1 className="text-2xl font-black tracking-tight">{state.tournament.name}</h1>
             <span className="bg-[#1A1A1A] text-[#12B5CB] text-xs px-2.5 py-1 rounded-md font-mono font-bold border border-[#2a2a2a]">
-              Director Control Panel
+              Lucky Cue (Moorpark, CA) • 6 Tables
             </span>
           </div>
-          <p className="text-xs text-[#888] mt-1 font-mono">
-            {state.tournament.venue_name} • Max {state.tournament.max_skill_cap} Scotch Doubles
+          <p className="text-xs text-[#888] mt-1 font-mono flex items-center gap-2">
+            <span>{state.tournament.venue_name}</span>
+            <span>•</span>
+            <span className="text-[#12B5CB] font-bold">
+              {state.tournament.game_type === '9_ball' ? '🟡 9-Ball' : '🎱 8-Ball'}
+            </span>
+            <span>•</span>
+            <span>Max {state.tournament.max_skill_cap} Cap</span>
+            <span>•</span>
+            <span className="text-[#F538A0] font-bold">Winner Stays / Queue Pipeline</span>
           </p>
         </div>
 
-        {/* Auto-Pilot Mode Toggle */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3 bg-[#1A1A1A] border border-[#2a2a2a] px-4 py-2 rounded-xl">
+        {/* Action Controls & Presets */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => setIsScenarioModalOpen(true)}
+            className="bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] text-[#12B5CB] px-3.5 py-2 rounded-xl text-xs font-bold font-mono transition-colors shadow flex items-center gap-1.5"
+          >
+            <span>⚙️</span> Tournament Scenarios
+          </button>
+
+          <div className="flex items-center gap-3 bg-[#1A1A1A] border border-[#2a2a2a] px-3.5 py-2 rounded-xl">
             <div className="text-right">
-              <div className="text-xs font-bold text-white">Auto-Pilot Matchmaker</div>
+              <div className="text-xs font-bold text-white">Auto-Pilot Pipeline</div>
               <div className="text-[10px] text-[#888]">
-                {state.tournament.auto_pilot ? 'Auto-assigning open tables' : 'Manual match assignments'}
+                {state.tournament.auto_pilot ? 'Winner racks for next opponent' : 'Manual queue'}
               </div>
             </div>
             <button
               onClick={toggleAutoPilot}
-              className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors ${
+              className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors ${
                 state.tournament.auto_pilot ? 'bg-[#12B5CB]' : 'bg-[#333]'
               }`}
             >
               <div
                 className={`bg-black w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                  state.tournament.auto_pilot ? 'translate-x-6' : 'translate-x-0'
+                  state.tournament.auto_pilot ? 'translate-x-5' : 'translate-x-0'
                 }`}
               />
             </button>
@@ -170,7 +198,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
         </div>
       </div>
 
-      {/* TOURNAMENT PULSE STATS (Griff's Las Vegas Pulse) */}
+      {/* TOURNAMENT PULSE STATS */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <div className="bg-[#181818] border border-[#2a2a2a] p-3.5 rounded-xl shadow">
           <div className="text-[11px] font-mono uppercase tracking-wider text-[#888]">Chips in Circulation</div>
@@ -188,16 +216,16 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
             {pulseStats.playingNowCount}
           </div>
           <div className="text-[10px] text-[#777] mt-0.5 font-mono">
-            across {pulseStats.activeMatchesCount} active tables
+            across {pulseStats.activeMatchesCount} active tables (6 max)
           </div>
         </div>
 
         <div className="bg-[#181818] border border-[#2a2a2a] p-3.5 rounded-xl shadow">
-          <div className="text-[11px] font-mono uppercase tracking-wider text-[#888]">Waiting in Queue</div>
+          <div className="text-[11px] font-mono uppercase tracking-wider text-[#888]">Pipeline Queue</div>
           <div className="text-xl font-black font-mono text-yellow-400 mt-1">
             {pulseStats.waitingQueueCount}
           </div>
-          <div className="text-[10px] text-[#777] mt-0.5 font-mono">pairings on deck</div>
+          <div className="text-[10px] text-[#777] mt-0.5 font-mono">pairings waiting on deck</div>
         </div>
 
         <div className="bg-[#181818] border border-[#2a2a2a] p-3.5 rounded-xl shadow">
@@ -211,7 +239,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
         </div>
 
         <div className="bg-[#181818] border border-[#2a2a2a] p-3.5 rounded-xl shadow">
-          <div className="text-[11px] font-mono uppercase tracking-wider text-[#888]">Avg Match Time</div>
+          <div className="text-[11px] font-mono uppercase tracking-wider text-[#888]">Avg Rack Time</div>
           <div className="text-xl font-black font-mono text-emerald-400 mt-1">
             {pulseStats.avgMatchTimeMinutes}m
           </div>
@@ -250,11 +278,11 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* LEFT 2 COLUMNS: ACTIVE TABLES & MATCHES */}
+        {/* LEFT 2 COLUMNS: 6 ACTIVE VENUE TABLES */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold flex items-center gap-2">
-              <span className="text-[#12B5CB]">⚡</span> Active Tables
+              <span className="text-[#12B5CB]">⚡</span> Lucky Cue Tables (1–6)
             </h2>
             <button
               onClick={() => {
@@ -267,8 +295,9 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {state.tables.map((table) => {
+          {/* 6-Table Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {state.tables.slice(0, 6).map((table) => {
               const match = state.matches.find(
                 (m) => m.id === table.active_match_id && m.status === 'in_progress'
               );
@@ -288,63 +317,63 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
                         TABLE #{table.table_number}
                       </span>
                       {table.referee_requested && (
-                        <span className="text-[10px] bg-red-600 text-white font-bold px-2 py-0.5 rounded animate-pulse">
-                          REFEREE CALLED
+                        <span className="text-[10px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded animate-pulse">
+                          REF!
                         </span>
                       )}
                     </div>
                     <span
-                      className={`text-[11px] font-bold px-2 py-0.5 rounded ${
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${
                         table.status === 'in_use'
                           ? 'bg-[#12B5CB]/10 text-[#12B5CB] border border-[#12B5CB]/30'
                           : 'bg-green-500/10 text-green-400 border border-green-500/30'
                       }`}
                     >
-                      {table.status === 'in_use' ? 'LIVE MATCH' : 'AVAILABLE'}
+                      {table.status === 'in_use' ? 'LIVE' : 'OPEN'}
                     </span>
                   </div>
 
                   {match && teamA && teamB ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                       {/* Pairing A Card */}
-                      <div className="p-3 bg-[#121212] rounded-lg border border-[#222] flex items-center justify-between">
-                        <div>
-                          <div className="font-bold text-sm text-white">
-                            {teamA.player_1_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamA.player_1_sl})</span> & {teamA.player_2_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamA.player_2_sl})</span>
+                      <div className="p-2.5 bg-[#121212] rounded-lg border border-[#222] flex items-center justify-between">
+                        <div className="truncate mr-2">
+                          <div className="font-bold text-xs text-white truncate">
+                            {teamA.player_1_name} {teamA.player_2_name ? `& ${teamA.player_2_name}` : ''}
                           </div>
-                          <div className="text-xs text-[#888] font-mono">
-                            Combined SL {teamA.combined_sl} • {teamA.chips_remaining} Chips ({teamA.wins || 0}W/{teamA.losses || 0}L)
+                          <div className="text-[10px] text-[#888] font-mono">
+                            SL {teamA.combined_sl} • {teamA.chips_remaining} Chips
                           </div>
                         </div>
                         <button
                           onClick={() => handleCompleteMatch(match.id, teamA.id)}
-                          className="bg-green-600 hover:bg-green-500 active:scale-95 text-white font-bold text-xs px-3 py-1.5 rounded-md transition-all shadow"
+                          className="bg-green-600 hover:bg-green-500 active:scale-95 text-white font-bold text-[11px] px-2.5 py-1 rounded transition-all shadow"
                         >
-                          Winner 🏆
+                          Win 🏆
                         </button>
                       </div>
 
                       {/* Pairing B Card */}
-                      <div className="p-3 bg-[#121212] rounded-lg border border-[#222] flex items-center justify-between">
-                        <div>
-                          <div className="font-bold text-sm text-white">
-                            {teamB.player_1_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamB.player_1_sl})</span> & {teamB.player_2_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamB.player_2_sl})</span>
+                      <div className="p-2.5 bg-[#121212] rounded-lg border border-[#222] flex items-center justify-between">
+                        <div className="truncate mr-2">
+                          <div className="font-bold text-xs text-white truncate">
+                            {teamB.player_1_name} {teamB.player_2_name ? `& ${teamB.player_2_name}` : ''}
                           </div>
-                          <div className="text-xs text-[#888] font-mono">
-                            Combined SL {teamB.combined_sl} • {teamB.chips_remaining} Chips ({teamB.wins || 0}W/{teamB.losses || 0}L)
+                          <div className="text-[10px] text-[#888] font-mono">
+                            SL {teamB.combined_sl} • {teamB.chips_remaining} Chips
                           </div>
                         </div>
                         <button
                           onClick={() => handleCompleteMatch(match.id, teamB.id)}
-                          className="bg-green-600 hover:bg-green-500 active:scale-95 text-white font-bold text-xs px-3 py-1.5 rounded-md transition-all shadow"
+                          className="bg-green-600 hover:bg-green-500 active:scale-95 text-white font-bold text-[11px] px-2.5 py-1 rounded transition-all shadow"
                         >
-                          Winner 🏆
+                          Win 🏆
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="py-8 text-center text-xs text-[#666] font-mono">
-                      Ready for next match assignment
+                    <div className="py-6 text-center text-xs text-[#666] font-mono">
+                      Table Open — Awaiting Next Queue Match
                     </div>
                   )}
                 </div>
@@ -355,7 +384,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
           {/* REGISTERED PAIRINGS & CHIP ADJUSTMENTS */}
           <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-5 shadow-lg">
             <h3 className="text-sm font-bold uppercase tracking-wider text-[#A0A0A0] mb-4">
-              Registered Player Pairings & Chip Management ({state.teams.length})
+              Registered Roster & Chip Management ({state.teams.length})
             </h3>
             <div className="space-y-3 max-h-72 overflow-y-auto">
               {state.teams.map((team) => (
@@ -365,7 +394,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
                 >
                   <div>
                     <div className="font-bold text-sm text-white flex items-center gap-2">
-                      {team.player_1_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{team.player_1_sl})</span> & {team.player_2_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{team.player_2_sl})</span>
+                      {team.player_1_name} {team.player_2_name ? `& ${team.player_2_name}` : ''}
                       <span className="text-xs text-[#888] font-mono bg-[#222] px-2 py-0.5 rounded">
                         Combined SL {team.combined_sl}
                       </span>
@@ -405,19 +434,21 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
           </div>
         </div>
 
-        {/* RIGHT COLUMN: DIRECT PLAYER REGISTRATION */}
+        {/* RIGHT COLUMN: REGISTRATION */}
         <div className="space-y-6">
           <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-5 shadow-lg">
             <div className="flex items-center justify-between border-b border-[#222] pb-3 mb-4">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <span>➕</span> Scotch Doubles Entry
+                <span>➕</span> {isSinglesMode ? 'Singles Entry' : 'Scotch Doubles Entry'}
               </h2>
-              <span className="text-xs text-[#12B5CB] font-mono font-bold">MAX {state.tournament.max_skill_cap} CAP</span>
+              <span className="text-xs text-[#12B5CB] font-mono font-bold">
+                {isSinglesMode ? 'SINGLES' : `MAX ${state.tournament.max_skill_cap} CAP`}
+              </span>
             </div>
 
             <form onSubmit={handleRegisterTeam} className="space-y-5">
               <TypeaheadPlayerSearch
-                label="Player 1"
+                label={isSinglesMode ? 'Player' : 'Player 1'}
                 placeholder="Type name or select from APA..."
                 playerName={player1Name}
                 skillLevel={player1SL}
@@ -428,19 +459,21 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
                 }}
               />
 
-              <TypeaheadPlayerSearch
-                label="Player 2"
-                placeholder="Type partner name or select..."
-                playerName={player2Name}
-                skillLevel={player2SL}
-                onPlayerChange={(name, sl, id) => {
-                  setPlayer2Name(name);
-                  setPlayer2SL(sl);
-                  setPlayer2Id(id);
-                }}
-              />
+              {!isSinglesMode && (
+                <TypeaheadPlayerSearch
+                  label="Player 2"
+                  placeholder="Type partner name or select..."
+                  playerName={player2Name}
+                  skillLevel={player2SL}
+                  onPlayerChange={(name, sl, id) => {
+                    setPlayer2Name(name);
+                    setPlayer2SL(sl);
+                    setPlayer2Id(id);
+                  }}
+                />
+              )}
 
-              {(player1Name || player2Name) && (
+              {(player1Name || player2Name) && !isSinglesMode && (
                 <div
                   className={`p-3.5 rounded-xl border text-xs flex justify-between items-center ${
                     isCapExceeded
@@ -468,15 +501,57 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
 
               <button
                 type="submit"
-                disabled={isCapExceeded || !player1Name || !player2Name}
+                disabled={isCapExceeded || !player1Name || (!isSinglesMode && !player2Name)}
                 className="w-full bg-[#12B5CB] hover:bg-[#0fa0b4] disabled:opacity-40 disabled:cursor-not-allowed text-black font-black py-3 rounded-xl transition-all shadow-lg text-sm tracking-wide"
               >
-                Register & Enqueue Pairing
+                Register & Enqueue in Pipeline
               </button>
             </form>
           </div>
         </div>
       </div>
+
+      {/* TOURNAMENT SCENARIO SELECTOR MODAL */}
+      {isScenarioModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#161616] border border-[#333] rounded-2xl p-6 max-w-2xl w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#222] pb-3">
+              <div>
+                <h3 className="text-lg font-bold text-white">🏆 Select Tournament Scenario</h3>
+                <p className="text-xs text-[#888]">Lucky Cue Billiards (Moorpark, CA) — 6 Table Formats</p>
+              </div>
+              <button
+                onClick={() => setIsScenarioModalOpen(false)}
+                className="text-[#888] hover:text-white text-xl font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {TOURNAMENT_SCENARIOS.map((sc) => (
+                <div
+                  key={sc.id}
+                  onClick={() => handleSelectScenario(sc)}
+                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                    state.tournament.name === sc.name
+                      ? 'bg-[#12B5CB]/10 border-[#12B5CB]'
+                      : 'bg-[#1a1a1a] border-[#2c2c2c] hover:border-[#444]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="font-bold text-sm text-white">{sc.name}</div>
+                    <span className="text-[11px] bg-[#222] text-[#12B5CB] px-2 py-0.5 rounded font-mono font-bold">
+                      {sc.gameType === '9_ball' ? '9-BALL' : '8-BALL'} • 6 TABLES
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#888]">{sc.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
