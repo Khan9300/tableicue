@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #121212;
+  --bg-elevated: #1a1a1a;
+  --bg-darker: #0d0d0d;
+  --color-cyan: #12b5cb;
+  --color-magenta: #f538a0;
+  --color-alert: #d93025;
+  --color-text: #ffffff;
+  --color-muted: #a0a0a0;
+  --color-border: #2a2a2a;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-darker);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-cyan);
+}
+
+/* Glowing Highlights & Subtle Animations */
+.glow-cyan {
+  box-shadow: 0 0 15px rgba(18, 181, 203, 0.25);
+}
+
+.glow-magenta {
+  box-shadow: 0 0 15px rgba(245, 56, 160, 0.25);
+}
+
+.glow-alert {
+  box-shadow: 0 0 15px rgba(217, 48, 37, 0.25);
+}
+
+/* Flip Digit Animation */
+@keyframes flipTop {
+  0% { transform: rotateX(0deg); }
+  100% { transform: rotateX(-90deg); }
+}
+
+@keyframes flipBottom {
+  0% { transform: rotateX(90deg); }
+  100% { transform: rotateX(0deg); }
+}
+
+.animate-flip-top {
+  animation: flipTop 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-flip-bottom {
+  animation: flipBottom 0.2s cubic-bezier(0.4, 0, 0.2, 1) 0.2s forwards;
+}
+
+/* Chip Chip Drop Animation */
+@keyframes chipDrop {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  50% { transform: translateY(-10px) scale(1.1); }
+  100% { transform: translateY(40px) scale(0.5); opacity: 0; }
+}
+
+.chip-lost {
+  animation: chipDrop 0.6s ease-out forwards;
+}

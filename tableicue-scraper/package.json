@@ -1,0 +1,21 @@
+{
+  "name": "tableicue-scraper",
+  "version": "1.0.0",
+  "description": "Playwright Scraper for South Coast APA and Table i-Cue Central Data Layer",
+  "main": "dist/scraper.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/scraper.js",
+    "dev": "ts-node src/scraper.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "dotenv": "^16.4.7",
+    "playwright": "^1.50.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}
