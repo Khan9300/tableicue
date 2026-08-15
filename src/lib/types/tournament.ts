@@ -24,6 +24,15 @@ export interface Player {
   skill_level_9ball?: number;
   fargo_rating?: number;
   home_venue?: string;
+  // Lifetime Career Stats
+  tournaments_played?: number;
+  tournaments_won?: number;
+  podium_finishes?: number;
+  matches_won?: number;
+  matches_lost?: number;
+  total_chips_defended?: number;
+  total_chips_lost?: number;
+  career_winnings?: number;
 }
 
 export interface Team {

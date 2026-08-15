@@ -7,6 +7,8 @@ import { BroadcastView } from '../components/tv/BroadcastView';
 import { useTableICueRealtime } from '../lib/supabase/useRealtime';
 import { SimiValleyRosterView } from '../components/directory/SimiValleyRosterView';
 import { TableScoreboardView } from '../components/score/TableScoreboardView';
+import { PlayerStatsView } from '../components/stats/PlayerStatsView';
+import { PlayerLoginModal } from '../components/auth/PlayerLoginModal';
 import { ShareModal } from '../components/ui/ShareModal';
 
 // Mock initial tournament state for Lucky Cue Billiards (Moorpark, CA) — 6 Tables Setup
@@ -16,7 +18,7 @@ const initialMockState: TournamentState = {
     name: '🎱 Lucky Cue 8-Ball Scotch Doubles (Winner Stays)',
     format: 'winner_stays_queue',
     game_type: '8_ball',
-    max_skill_cap: 10,
+    max_skill_cap: 12,
     starting_chips_policy: 'handicap_matrix',
     venue_name: 'Lucky Cue Billiards (Moorpark, CA)',
     status: 'in_progress',
@@ -42,8 +44,8 @@ const initialMockState: TournamentState = {
       player_1_sl: 4,
       player_2_sl: 6,
       combined_sl: 10,
-      starting_chips: 5,
-      chips_remaining: 5,
+      starting_chips: 3,
+      chips_remaining: 3,
       status: 'active',
       wins: 2,
       losses: 0,
@@ -57,8 +59,8 @@ const initialMockState: TournamentState = {
       player_1_sl: 4,
       player_2_sl: 5,
       combined_sl: 9,
-      starting_chips: 6,
-      chips_remaining: 5,
+      starting_chips: 3,
+      chips_remaining: 3,
       status: 'active',
       wins: 1,
       losses: 1,
@@ -72,8 +74,8 @@ const initialMockState: TournamentState = {
       player_1_sl: 3,
       player_2_sl: 6,
       combined_sl: 9,
-      starting_chips: 6,
-      chips_remaining: 6,
+      starting_chips: 3,
+      chips_remaining: 3,
       status: 'active',
       wins: 1,
       losses: 0,
@@ -87,8 +89,8 @@ const initialMockState: TournamentState = {
       player_1_sl: 5,
       player_2_sl: 4,
       combined_sl: 9,
-      starting_chips: 6,
-      chips_remaining: 4,
+      starting_chips: 3,
+      chips_remaining: 2,
       status: 'active',
       wins: 0,
       losses: 2,
@@ -102,8 +104,8 @@ const initialMockState: TournamentState = {
       player_1_sl: 5,
       player_2_sl: 2,
       combined_sl: 7,
-      starting_chips: 7,
-      chips_remaining: 7,
+      starting_chips: 4,
+      chips_remaining: 4,
       status: 'active',
       wins: 1,
       losses: 0,
@@ -117,8 +119,8 @@ const initialMockState: TournamentState = {
       player_1_sl: 4,
       player_2_sl: 5,
       combined_sl: 9,
-      starting_chips: 6,
-      chips_remaining: 5,
+      starting_chips: 3,
+      chips_remaining: 2,
       status: 'active',
       wins: 0,
       losses: 1,
@@ -132,8 +134,8 @@ const initialMockState: TournamentState = {
       player_1_sl: 7,
       player_2_sl: 5,
       combined_sl: 12,
-      starting_chips: 4,
-      chips_remaining: 4,
+      starting_chips: 1,
+      chips_remaining: 1,
       status: 'active',
       wins: 0,
       losses: 0,
@@ -189,8 +191,10 @@ const initialMockState: TournamentState = {
 };
 
 export default function TableICueApp() {
-  const [activeTab, setActiveTab] = useState<'director' | 'tv' | 'mobile_score' | 'roster'>('director');
+  const [activeTab, setActiveTab] = useState<'director' | 'tv' | 'mobile_score' | 'roster' | 'stats'>('director');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ name: string; role: 'player' | 'director' } | null>(null);
 
   // Connect to Supabase Realtime Stream
   const { state: liveState } = useTableICueRealtime('a0000000-0000-0000-0000-000000000001');
@@ -215,8 +219,8 @@ export default function TableICueApp() {
         </div>
 
         {/* View Mode Selector & Tools */}
-        <div className="flex items-center gap-3">
-          <div className="flex gap-1 bg-[#181818] p-1 rounded-xl border border-[#2a2a2a]">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex gap-1 bg-[#181818] p-1 rounded-xl border border-[#2a2a2a] overflow-x-auto">
             <button
               onClick={() => setActiveTab('director')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -248,6 +252,16 @@ export default function TableICueApp() {
               Table Scoreboard (1–6)
             </button>
             <button
+              onClick={() => setActiveTab('stats')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                activeTab === 'stats'
+                  ? 'bg-[#12B5CB] text-black shadow-md'
+                  : 'text-[#A0A0A0] hover:text-white'
+              }`}
+            >
+              🏆 Hall of Fame & Stats
+            </button>
+            <button
               onClick={() => setActiveTab('roster')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === 'roster'
@@ -259,12 +273,21 @@ export default function TableICueApp() {
             </button>
           </div>
 
-          <button
-            onClick={() => setIsShareModalOpen(true)}
-            className="bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] text-[#12B5CB] px-3 py-1.5 rounded-xl text-xs font-bold font-mono flex items-center gap-1.5 transition-colors"
-          >
-            <span>📺</span> Cast & Links
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsLoginModalOpen(true)}
+              className="bg-[#181818] hover:bg-[#252525] border border-[#333] text-white px-3 py-1.5 rounded-xl text-xs font-bold font-mono flex items-center gap-1.5 transition-colors"
+            >
+              <span>👤</span> {currentUser ? currentUser.name : 'Sign In'}
+            </button>
+
+            <button
+              onClick={() => setIsShareModalOpen(true)}
+              className="bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] text-[#12B5CB] px-3 py-1.5 rounded-xl text-xs font-bold font-mono flex items-center gap-1.5 transition-colors"
+            >
+              <span>📺</span> Cast & QR
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -272,6 +295,7 @@ export default function TableICueApp() {
       <main className="flex-1">
         {activeTab === 'director' && <DirectorDashboard initialState={currentState} />}
         {activeTab === 'tv' && <BroadcastView state={currentState} />}
+        {activeTab === 'stats' && <PlayerStatsView />}
         {activeTab === 'roster' && <SimiValleyRosterView />}
         {activeTab === 'mobile_score' && <TableScoreboardView state={currentState} />}
       </main>
@@ -281,6 +305,13 @@ export default function TableICueApp() {
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         tablesCount={currentState.tables.length}
+      />
+
+      {/* Player Sign In / Director PIN Modal */}
+      <PlayerLoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={(user) => setCurrentUser(user)}
       />
     </div>
   );
