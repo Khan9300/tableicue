@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { TableICueEngine, TournamentState } from '../../lib/tournament/engine';
-import { Player } from '../../lib/types/tournament';
 import { TypeaheadPlayerSearch } from './TypeaheadPlayerSearch';
 import { VirtualChips } from '../score/VirtualChips';
 import { registerTeamAction, completeMatchAction, adjustChipsAction } from '../../lib/tournament/actions';
@@ -15,10 +14,15 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
   const [engine, setEngine] = useState(() => new TableICueEngine(initialState));
   const [state, setState] = useState<TournamentState>(() => engine.getState());
 
-  // Registration Form State
-  const [teamName, setTeamName] = useState('');
-  const [player1, setPlayer1] = useState<Player | null>(null);
-  const [player2, setPlayer2] = useState<Player | null>(null);
+  // Registration Form State (Player 1 & Player 2 directly)
+  const [player1Name, setPlayer1Name] = useState('');
+  const [player1SL, setPlayer1SL] = useState<number>(3);
+  const [player1Id, setPlayer1Id] = useState<string | undefined>();
+
+  const [player2Name, setPlayer2Name] = useState('');
+  const [player2SL, setPlayer2SL] = useState<number>(3);
+  const [player2Id, setPlayer2Id] = useState<string | undefined>();
+
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Re-sync local state after mutations
@@ -30,26 +34,21 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!teamName.trim()) {
-      setErrorMsg('Please enter a team name.');
-      return;
-    }
-    if (!player1 || !player2) {
-      setErrorMsg('Please select both Player 1 and Player 2.');
+    if (!player1Name.trim() || !player2Name.trim()) {
+      setErrorMsg('Please enter or select both Player 1 and Player 2.');
       return;
     }
 
-    const p1SL = player1.skill_level_8ball || 3;
-    const p2SL = player2.skill_level_8ball || 3;
+    const combinedName = `${player1Name} & ${player2Name}`;
 
     const result = engine.registerTeam({
-      teamName,
-      player1Name: player1.full_name,
-      player2Name: player2.full_name,
-      player1SL: p1SL,
-      player2SL: p2SL,
-      player1Id: player1.id,
-      player2Id: player2.id,
+      teamName: combinedName,
+      player1Name: player1Name.trim(),
+      player2Name: player2Name.trim(),
+      player1SL: player1SL || 3,
+      player2SL: player2SL || 3,
+      player1Id,
+      player2Id,
     });
 
     if (!result.success) {
@@ -58,19 +57,23 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
     }
 
     // Optimistic Reset
-    setTeamName('');
-    setPlayer1(null);
-    setPlayer2(null);
+    setPlayer1Name('');
+    setPlayer1SL(3);
+    setPlayer1Id(undefined);
+
+    setPlayer2Name('');
+    setPlayer2SL(3);
+    setPlayer2Id(undefined);
     updateState();
 
     // Async Supabase Sync
     registerTeamAction({
       tournamentId: state.tournament.id,
-      teamName,
-      player1Name: player1.full_name,
-      player2Name: player2.full_name,
-      player1SL: p1SL,
-      player2SL: p2SL,
+      teamName: combinedName,
+      player1Name: player1Name.trim(),
+      player2Name: player2Name.trim(),
+      player1SL: player1SL || 3,
+      player2SL: player2SL || 3,
       maxCap: state.tournament.max_skill_cap,
     }).catch((err) => console.error('Supabase async sync warning:', err));
   };
@@ -113,7 +116,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
     updateState();
   };
 
-  const combinedSkillLevel = (player1?.skill_level_8ball || 0) + (player2?.skill_level_8ball || 0);
+  const combinedSkillLevel = (player1SL || 0) + (player2SL || 0);
   const isCapExceeded = combinedSkillLevel > state.tournament.max_skill_cap;
 
   return (
@@ -206,12 +209,14 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
 
                   {match && teamA && teamB ? (
                     <div className="space-y-3">
-                      {/* Team A Card */}
+                      {/* Pairing A Card */}
                       <div className="p-3 bg-[#121212] rounded-lg border border-[#222] flex items-center justify-between">
                         <div>
-                          <div className="font-bold text-sm text-white">{teamA.team_name}</div>
-                          <div className="text-xs text-[#888]">
-                            {teamA.player_1_name} & {teamA.player_2_name} (SL{teamA.combined_sl})
+                          <div className="font-bold text-sm text-white">
+                            {teamA.player_1_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamA.player_1_sl})</span> & {teamA.player_2_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamA.player_2_sl})</span>
+                          </div>
+                          <div className="text-xs text-[#888] font-mono">
+                            Combined SL {teamA.combined_sl} • {teamA.chips_remaining} Chips
                           </div>
                         </div>
                         <button
@@ -222,12 +227,14 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
                         </button>
                       </div>
 
-                      {/* Team B Card */}
+                      {/* Pairing B Card */}
                       <div className="p-3 bg-[#121212] rounded-lg border border-[#222] flex items-center justify-between">
                         <div>
-                          <div className="font-bold text-sm text-white">{teamB.team_name}</div>
-                          <div className="text-xs text-[#888]">
-                            {teamB.player_1_name} & {teamB.player_2_name} (SL{teamB.combined_sl})
+                          <div className="font-bold text-sm text-white">
+                            {teamB.player_1_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamB.player_1_sl})</span> & {teamB.player_2_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamB.player_2_sl})</span>
+                          </div>
+                          <div className="text-xs text-[#888] font-mono">
+                            Combined SL {teamB.combined_sl} • {teamB.chips_remaining} Chips
                           </div>
                         </div>
                         <button
@@ -248,10 +255,10 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
             })}
           </div>
 
-          {/* TEAMS & CHIP ADJUSTMENTS */}
+          {/* REGISTERED PAIRINGS & CHIP ADJUSTMENTS */}
           <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-5 shadow-lg">
             <h3 className="text-sm font-bold uppercase tracking-wider text-[#A0A0A0] mb-4">
-              Registered Teams & Chip Management ({state.teams.length})
+              Registered Player Pairings & Chip Management ({state.teams.length})
             </h3>
             <div className="space-y-3 max-h-72 overflow-y-auto">
               {state.teams.map((team) => (
@@ -261,13 +268,10 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
                 >
                   <div>
                     <div className="font-bold text-sm text-white flex items-center gap-2">
-                      {team.team_name}
-                      <span className="text-xs text-[#888] font-mono">
-                        (SL{team.combined_sl})
+                      {team.player_1_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{team.player_1_sl})</span> & {team.player_2_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{team.player_2_sl})</span>
+                      <span className="text-xs text-[#888] font-mono bg-[#222] px-2 py-0.5 rounded">
+                        Combined SL {team.combined_sl}
                       </span>
-                    </div>
-                    <div className="text-xs text-[#666]">
-                      {team.player_1_name} & {team.player_2_name}
                     </div>
                   </div>
 
@@ -281,14 +285,14 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleAdjustChips(team.id, -1)}
-                        className="bg-[#222] hover:bg-[#333] text-white px-2 py-0.5 rounded text-xs font-bold"
+                        className="bg-[#222] hover:bg-[#333] text-white px-2 py-0.5 rounded text-xs font-bold font-mono"
                         title="Deduct 1 Chip"
                       >
                         -1
                       </button>
                       <button
                         onClick={() => handleAdjustChips(team.id, 1)}
-                        className="bg-[#222] hover:bg-[#333] text-[#12B5CB] px-2 py-0.5 rounded text-xs font-bold"
+                        className="bg-[#222] hover:bg-[#333] text-[#12B5CB] px-2 py-0.5 rounded text-xs font-bold font-mono"
                         title="Add 1 Chip"
                       >
                         +1
@@ -301,55 +305,59 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
           </div>
         </div>
 
-        {/* RIGHT COLUMN: INSTANT TEAM REGISTRATION (WITH APA TYPEAHEAD) */}
+        {/* RIGHT COLUMN: DIRECT PLAYER A & B REGISTRATION */}
         <div className="space-y-6">
           <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-5 shadow-lg">
             <div className="flex items-center justify-between border-b border-[#222] pb-3 mb-4">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <span>➕</span> Fast Team Entry
+                <span>➕</span> Scotch Doubles Entry
               </h2>
-              <span className="text-xs text-[#12B5CB] font-mono">APA VERIFIED</span>
+              <span className="text-xs text-[#12B5CB] font-mono font-bold">MAX {state.tournament.max_skill_cap} CAP</span>
             </div>
 
-            <form onSubmit={handleRegisterTeam} className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-[#A0A0A0]">Team Name</label>
-                <input
-                  type="text"
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                  placeholder="e.g. Cue Masters, Lucky Shots"
-                  className="w-full mt-1 bg-[#121212] border border-[#333] focus:border-[#12B5CB] focus:outline-none text-white px-3.5 py-2 rounded-lg text-sm"
-                />
-              </div>
-
-              {/* Player 1 Autocomplete */}
+            <form onSubmit={handleRegisterTeam} className="space-y-5">
+              {/* Player 1 Autocomplete & Manual Override */}
               <TypeaheadPlayerSearch
-                label="Player 1 (Lead)"
-                selectedPlayer={player1}
-                onSelectPlayer={setPlayer1}
-                onClear={() => setPlayer1(null)}
+                label="Player 1"
+                placeholder="Type name or select from APA..."
+                playerName={player1Name}
+                skillLevel={player1SL}
+                onPlayerChange={(name, sl, id) => {
+                  setPlayer1Name(name);
+                  setPlayer1SL(sl);
+                  setPlayer1Id(id);
+                }}
               />
 
-              {/* Player 2 Autocomplete */}
+              {/* Player 2 Autocomplete & Manual Override */}
               <TypeaheadPlayerSearch
-                label="Player 2 (Partner)"
-                selectedPlayer={player2}
-                onSelectPlayer={setPlayer2}
-                onClear={() => setPlayer2(null)}
+                label="Player 2"
+                placeholder="Type partner name or select..."
+                playerName={player2Name}
+                skillLevel={player2SL}
+                onPlayerChange={(name, sl, id) => {
+                  setPlayer2Name(name);
+                  setPlayer2SL(sl);
+                  setPlayer2Id(id);
+                }}
               />
 
               {/* Combined Skill Level & Cap Indicator */}
-              {(player1 || player2) && (
+              {(player1Name || player2Name) && (
                 <div
-                  className={`p-3 rounded-lg border text-xs flex justify-between items-center ${
+                  className={`p-3.5 rounded-xl border text-xs flex justify-between items-center ${
                     isCapExceeded
                       ? 'bg-red-500/10 border-red-500/50 text-red-400'
                       : 'bg-[#12B5CB]/10 border-[#12B5CB]/30 text-[#12B5CB]'
                   }`}
                 >
-                  <span className="font-bold">Combined Skill Level:</span>
-                  <span className="font-mono font-bold text-sm">
+                  <div>
+                    <div className="font-bold">Combined Team Handicap:</div>
+                    <div className="text-[10px] text-[#888]">
+                      Player 1 (SL {player1SL}) + Player 2 (SL {player2SL})
+                    </div>
+                  </div>
+                  <span className="font-mono font-bold text-base">
                     SL {combinedSkillLevel} / Max {state.tournament.max_skill_cap}
                   </span>
                 </div>
@@ -363,10 +371,10 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
 
               <button
                 type="submit"
-                disabled={isCapExceeded}
-                className="w-full bg-[#12B5CB] hover:bg-[#0fa0b4] disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold py-2.5 rounded-lg transition-all shadow-lg text-sm"
+                disabled={isCapExceeded || !player1Name || !player2Name}
+                className="w-full bg-[#12B5CB] hover:bg-[#0fa0b4] disabled:opacity-40 disabled:cursor-not-allowed text-black font-black py-3 rounded-xl transition-all shadow-lg text-sm tracking-wide"
               >
-                Register & Enqueue Team
+                Register & Enqueue Pairing
               </button>
             </form>
           </div>

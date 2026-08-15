@@ -29,7 +29,7 @@ export const TableScoreboardView: React.FC<TableScoreboardViewProps> = ({ state,
 
   const handleSubmitMatch = async () => {
     if (!currentMatch || !teamA || !teamB || !selectedWinnerId || !currentTable) {
-      alert('Please select the winning team before submitting the rack.');
+      alert('Please select the winning pairing before submitting the rack.');
       return;
     }
 
@@ -99,7 +99,7 @@ export const TableScoreboardView: React.FC<TableScoreboardViewProps> = ({ state,
               LIVE RACK IN PLAY
             </span>
             <h2 className="text-lg font-black text-white mt-2">
-              {teamA.team_name} vs {teamB.team_name}
+              {teamA.player_1_name} & {teamA.player_2_name} <span className="text-[#888] font-normal">vs</span> {teamB.player_1_name} & {teamB.player_2_name}
             </h2>
             <p className="text-xs text-[#888] font-mono">
               Scotch Doubles • Winner retains Table {selectedTableNumber}
@@ -108,7 +108,7 @@ export const TableScoreboardView: React.FC<TableScoreboardViewProps> = ({ state,
 
           {/* Interactive Digital Flip Counters */}
           <div className="grid grid-cols-2 gap-4 bg-[#181818] border border-[#2a2a2a] p-5 rounded-2xl shadow-2xl">
-            {/* Team A Counter Card */}
+            {/* Pairing A Counter Card */}
             <div
               onClick={() => setSelectedWinnerId(teamA.id)}
               className={`p-4 rounded-xl border flex flex-col items-center space-y-3 cursor-pointer transition-all ${
@@ -118,9 +118,12 @@ export const TableScoreboardView: React.FC<TableScoreboardViewProps> = ({ state,
               }`}
             >
               <div className="text-center">
-                <div className="font-bold text-sm text-white truncate max-w-[130px]">{teamA.team_name}</div>
-                <div className="text-[11px] text-[#888]">{teamA.player_1_name} & {teamA.player_2_name}</div>
-                <div className="text-[10px] text-[#12B5CB] font-mono font-bold">SL {teamA.combined_sl}</div>
+                <div className="font-bold text-sm text-white truncate max-w-[140px]">
+                  {teamA.player_1_name} & {teamA.player_2_name}
+                </div>
+                <div className="text-[11px] text-[#12B5CB] font-mono font-bold">
+                  SL {teamA.player_1_sl} + SL {teamA.player_2_sl} = Combined SL {teamA.combined_sl}
+                </div>
               </div>
 
               <AnimatedFlipCounter
@@ -144,7 +147,7 @@ export const TableScoreboardView: React.FC<TableScoreboardViewProps> = ({ state,
               </div>
             </div>
 
-            {/* Team B Counter Card */}
+            {/* Pairing B Counter Card */}
             <div
               onClick={() => setSelectedWinnerId(teamB.id)}
               className={`p-4 rounded-xl border flex flex-col items-center space-y-3 cursor-pointer transition-all ${
@@ -154,9 +157,12 @@ export const TableScoreboardView: React.FC<TableScoreboardViewProps> = ({ state,
               }`}
             >
               <div className="text-center">
-                <div className="font-bold text-sm text-white truncate max-w-[130px]">{teamB.team_name}</div>
-                <div className="text-[11px] text-[#888]">{teamB.player_1_name} & {teamB.player_2_name}</div>
-                <div className="text-[10px] text-[#12B5CB] font-mono font-bold">SL {teamB.combined_sl}</div>
+                <div className="font-bold text-sm text-white truncate max-w-[140px]">
+                  {teamB.player_1_name} & {teamB.player_2_name}
+                </div>
+                <div className="text-[11px] text-[#12B5CB] font-mono font-bold">
+                  SL {teamB.player_1_sl} + SL {teamB.player_2_sl} = Combined SL {teamB.combined_sl}
+                </div>
               </div>
 
               <AnimatedFlipCounter
@@ -187,7 +193,7 @@ export const TableScoreboardView: React.FC<TableScoreboardViewProps> = ({ state,
             disabled={!selectedWinnerId || isSubmitting}
             className="w-full bg-[#F538A0] hover:bg-[#d62687] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg transition-all text-sm tracking-wide"
           >
-            {isSubmitting ? 'Submitting Rack...' : 'Submit Match Winner & Dequeue Next Team'}
+            {isSubmitting ? 'Submitting Rack...' : 'Submit Match Winner & Dequeue Next Pairing'}
           </button>
         </div>
       ) : (
@@ -195,7 +201,7 @@ export const TableScoreboardView: React.FC<TableScoreboardViewProps> = ({ state,
           <div className="text-3xl">🎱</div>
           <h3 className="font-bold text-white">Table {selectedTableNumber} is Currently Available</h3>
           <p className="text-xs text-[#888] max-w-xs mx-auto">
-            Switch to the Director tab to assign a match or engage Auto-Pilot mode to pull waiting teams from the queue.
+            Switch to the Director tab to assign a match or engage Auto-Pilot mode to pull waiting pairings from the queue.
           </p>
         </div>
       )}

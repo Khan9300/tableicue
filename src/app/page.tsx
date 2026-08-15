@@ -31,7 +31,7 @@ const initialMockState: TournamentState = {
     {
       id: 't-1',
       tournament_id: 'tourney-sv-01',
-      team_name: 'Moorpark Breakers',
+      team_name: 'Fahad Khan & Sarah Miller',
       player_1_name: 'Fahad Khan',
       player_2_name: 'Sarah Miller',
       player_1_sl: 6,
@@ -44,7 +44,7 @@ const initialMockState: TournamentState = {
     {
       id: 't-2',
       tournament_id: 'tourney-sv-01',
-      team_name: 'Pocket Rockets',
+      team_name: 'Mike Johnson & Carlos Rodriguez',
       player_1_name: 'Mike Johnson',
       player_2_name: 'Carlos Rodriguez',
       player_1_sl: 4,
@@ -57,7 +57,7 @@ const initialMockState: TournamentState = {
     {
       id: 't-3',
       tournament_id: 'tourney-sv-01',
-      team_name: 'Simi Strokers',
+      team_name: 'David Chen & Jessica Taylor',
       player_1_name: 'David Chen',
       player_2_name: 'Jessica Taylor',
       player_1_sl: 5,
@@ -70,7 +70,7 @@ const initialMockState: TournamentState = {
     {
       id: 't-4',
       tournament_id: 'tourney-sv-01',
-      team_name: 'Lucky Chalk',
+      team_name: 'Robert Gomez & Amanda White',
       player_1_name: 'Robert Gomez',
       player_2_name: 'Amanda White',
       player_1_sl: 5,

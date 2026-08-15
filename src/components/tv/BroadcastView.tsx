@@ -55,7 +55,7 @@ export const BroadcastView: React.FC<BroadcastViewProps> = ({ state }) => {
               <span>•</span>
               <span className="text-[#12B5CB]">MAX {tournament.max_skill_cap} SCOTCH DOUBLES</span>
               <span>•</span>
-              <span className="text-[#F538A0]">{survivingTeams.length} TEAMS REMAINING</span>
+              <span className="text-[#F538A0]">{survivingTeams.length} PAIRINGS REMAINING</span>
             </div>
           </div>
         </div>
@@ -99,24 +99,28 @@ export const BroadcastView: React.FC<BroadcastViewProps> = ({ state }) => {
 
                 {match && teamA && teamB ? (
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-2.5 bg-[#0e0e0e] rounded-lg border border-[#222]">
+                    <div className="flex items-center justify-between p-3 bg-[#0e0e0e] rounded-lg border border-[#222]">
                       <div className="truncate">
-                        <div className="font-bold text-sm text-white truncate">{teamA.team_name}</div>
-                        <div className="text-xs text-[#888]">{teamA.player_1_name} & {teamA.player_2_name} (SL{teamA.combined_sl})</div>
+                        <div className="font-bold text-sm text-white truncate">
+                          {teamA.player_1_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamA.player_1_sl})</span> & {teamA.player_2_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamA.player_2_sl})</span>
+                        </div>
+                        <div className="text-xs text-[#888] font-mono">Combined SL {teamA.combined_sl}</div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right ml-2">
                         <span className="text-xs text-[#F538A0] font-mono font-bold">{teamA.chips_remaining} Chips</span>
                       </div>
                     </div>
 
                     <div className="text-center text-xs font-black text-[#555] tracking-widest">VS</div>
 
-                    <div className="flex items-center justify-between p-2.5 bg-[#0e0e0e] rounded-lg border border-[#222]">
+                    <div className="flex items-center justify-between p-3 bg-[#0e0e0e] rounded-lg border border-[#222]">
                       <div className="truncate">
-                        <div className="font-bold text-sm text-white truncate">{teamB.team_name}</div>
-                        <div className="text-xs text-[#888]">{teamB.player_1_name} & {teamB.player_2_name} (SL{teamB.combined_sl})</div>
+                        <div className="font-bold text-sm text-white truncate">
+                          {teamB.player_1_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamB.player_1_sl})</span> & {teamB.player_2_name} <span className="text-[#12B5CB] font-mono text-xs">(SL{teamB.player_2_sl})</span>
+                        </div>
+                        <div className="text-xs text-[#888] font-mono">Combined SL {teamB.combined_sl}</div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right ml-2">
                         <span className="text-xs text-[#F538A0] font-mono font-bold">{teamB.chips_remaining} Chips</span>
                       </div>
                     </div>
@@ -143,7 +147,7 @@ export const BroadcastView: React.FC<BroadcastViewProps> = ({ state }) => {
 
           <div className="space-y-3 flex-1 overflow-y-auto">
             {waitingQueue.length === 0 ? (
-              <div className="py-12 text-center text-sm text-[#666] font-mono">No teams currently waiting in queue.</div>
+              <div className="py-12 text-center text-sm text-[#666] font-mono">No pairings currently waiting in queue.</div>
             ) : (
               waitingQueue.map(({ queueItem, team }, idx) => (
                 <div
@@ -163,9 +167,11 @@ export const BroadcastView: React.FC<BroadcastViewProps> = ({ state }) => {
                       #{idx + 1}
                     </span>
                     <div>
-                      <div className="font-bold text-sm text-white">{team?.team_name}</div>
-                      <div className="text-xs text-[#888]">
-                        {team?.player_1_name} & {team?.player_2_name} (SL{team?.combined_sl})
+                      <div className="font-bold text-sm text-white">
+                        {team?.player_1_name} <span className="text-[#12B5CB] text-xs font-mono">(SL{team?.player_1_sl})</span> & {team?.player_2_name} <span className="text-[#12B5CB] text-xs font-mono">(SL{team?.player_2_sl})</span>
+                      </div>
+                      <div className="text-xs text-[#888] font-mono">
+                        Combined SL {team?.combined_sl}
                       </div>
                     </div>
                   </div>
@@ -203,8 +209,10 @@ export const BroadcastView: React.FC<BroadcastViewProps> = ({ state }) => {
                     {idx + 1}
                   </span>
                   <div>
-                    <div className="font-bold text-sm text-white">{team.team_name}</div>
-                    <div className="text-xs text-[#888]">SL {team.combined_sl}</div>
+                    <div className="font-bold text-sm text-white">
+                      {team.player_1_name} <span className="text-[#12B5CB] text-xs font-mono">(SL{team.player_1_sl})</span> & {team.player_2_name} <span className="text-[#12B5CB] text-xs font-mono">(SL{team.player_2_sl})</span>
+                    </div>
+                    <div className="text-xs text-[#888] font-mono">Combined SL {team.combined_sl}</div>
                   </div>
                 </div>
                 <div>
@@ -221,12 +229,12 @@ export const BroadcastView: React.FC<BroadcastViewProps> = ({ state }) => {
             {eliminatedTeams.length > 0 && (
               <div className="pt-4 border-t border-[#222] mt-4">
                 <h3 className="text-xs uppercase font-bold tracking-wider text-[#D93025] mb-2">
-                  Eliminated Teams ({eliminatedTeams.length})
+                  Eliminated Pairings ({eliminatedTeams.length})
                 </h3>
                 <div className="space-y-1.5 opacity-60">
                   {eliminatedTeams.map((team) => (
                     <div key={team.id} className="text-xs flex justify-between py-1 border-b border-[#1c1c1c] text-[#777]">
-                      <span className="line-through">{team.team_name}</span>
+                      <span className="line-through">{team.player_1_name} & {team.player_2_name}</span>
                       <span className="font-mono text-[#D93025]">OUT ({team.starting_chips} Chips Lost)</span>
                     </div>
                   ))}
@@ -239,7 +247,7 @@ export const BroadcastView: React.FC<BroadcastViewProps> = ({ state }) => {
 
       {/* Footer Ticker */}
       <footer className="mt-6 pt-3 border-t border-[#222] flex items-center justify-between text-xs text-[#666] font-mono">
-        <div>TABLE I-CUE • POWERED BY GOOGLE ANTIGRAVITY</div>
+        <div>TABLE I-CUE • SCOTCH DOUBLES CHIP TOURNAMENT</div>
         <div>SIMI VALLEY & VENTURA COUNTY LEAGUES</div>
       </footer>
     </div>
