@@ -96,6 +96,16 @@ export class TableICueEngine {
   }
 
   /**
+   * Calculates estimated wait time in minutes for a queue position across 6 tables.
+   */
+  public getEstimatedWaitMinutes(queueIndex: number): number {
+    const activeTablesCount = Math.max(1, this.state.tables.filter((t) => t.status === 'in_use').length);
+    const avgRackMinutes = 6.2;
+    const turnoverRateMinutes = avgRackMinutes / activeTablesCount; // ~1.03 min per match finish on 6 tables
+    return Math.max(1, Math.round((queueIndex + 1) * turnoverRateMinutes));
+  }
+
+  /**
    * Registers a new team and allocates initial virtual chips.
    */
   public registerTeam(params: {
