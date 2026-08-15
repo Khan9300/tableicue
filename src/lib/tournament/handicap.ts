@@ -21,29 +21,32 @@ export function validateSkillCap(
 
 /**
  * Calculates starting virtual chips for Scotch Doubles chip tournaments
- * based on the combined team handicap (Equalizer / FargoRate approximations).
+ * Max starting chips for any team is capped at 5 chips.
  */
 export function calculateStartingChips(
   combinedSL: number,
   policy: 'handicap_matrix' | 'equal' = 'handicap_matrix',
-  defaultChips: number = 6
+  defaultChips: number = 5
 ): number {
+  const MAX_CHIPS = 5;
+
   if (policy === 'equal') {
-    return defaultChips;
+    return Math.min(MAX_CHIPS, defaultChips);
   }
 
-  // Official Table i-Cue Starting Chips Matrix for Scotch Doubles
-  if (combinedSL <= 5) {
-    return 8; // Combined SL 4 - 5
-  } else if (combinedSL <= 7) {
-    return 7; // Combined SL 6 - 7
-  } else if (combinedSL <= 9) {
-    return 6; // Combined SL 8 - 9
-  } else if (combinedSL === 10) {
-    return 5; // Combined SL 10
+  // Official Table i-Cue Starting Chips Matrix for Scotch Doubles (Max 5 Chips Cap)
+  let chips = 3;
+  if (combinedSL <= 6) {
+    chips = 5; // Combined SL <= 6 (e.g. 3+3, 2+4, 2+3) -> 5 Chips (Max)
+  } else if (combinedSL <= 8) {
+    chips = 4; // Combined SL 7-8 (e.g. 4+4, 3+5) -> 4 Chips
+  } else if (combinedSL <= 10) {
+    chips = 3; // Combined SL 9-10 (e.g. 4+5, 5+5, 4+6) -> 3 Chips
   } else {
-    return 4; // Combined SL 11 - 12 (if high-cap format allowed)
+    chips = 2; // Combined SL 11+ (Masters / Open) -> 2 Chips
   }
+
+  return Math.min(MAX_CHIPS, chips);
 }
 
 /**

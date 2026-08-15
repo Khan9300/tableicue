@@ -12,13 +12,20 @@ function validateSkillCap(player1SL, player2SL, maxCap = 10) {
   return { valid: true, combinedSL };
 }
 
-function calculateStartingChips(combinedSL, policy = 'handicap_matrix', defaultChips = 6) {
-  if (policy === 'equal') return defaultChips;
-  if (combinedSL <= 5) return 8;
-  if (combinedSL <= 7) return 7;
-  if (combinedSL <= 9) return 6;
-  if (combinedSL === 10) return 5;
-  return 4;
+function calculateStartingChips(combinedSL, policy = 'handicap_matrix', defaultChips = 5) {
+  const MAX_CHIPS = 5;
+  if (policy === 'equal') return Math.min(MAX_CHIPS, defaultChips);
+  let chips = 3;
+  if (combinedSL <= 6) {
+    chips = 5; // Combined SL <= 6 -> 5 Chips (Max)
+  } else if (combinedSL <= 8) {
+    chips = 4; // Combined SL 7-8 -> 4 Chips
+  } else if (combinedSL <= 10) {
+    chips = 3; // Combined SL 9-10 -> 3 Chips
+  } else {
+    chips = 2; // Combined SL 11+ -> 2 Chips
+  }
+  return Math.min(MAX_CHIPS, chips);
 }
 
 class TableICueEngine {
@@ -135,11 +142,15 @@ function runTests() {
   const invalidCap = validateSkillCap(6, 5, 10);
   assert(!invalidCap.valid && invalidCap.combinedSL === 11, 'Enforce Max 10 cap (reject combined SL 11)');
 
-  // 2. Chip Allocation Matrix Tests
-  assert(calculateStartingChips(5) === 8, 'Combined SL <= 5 receives 8 starting chips');
-  assert(calculateStartingChips(7) === 7, 'Combined SL 6-7 receives 7 starting chips');
-  assert(calculateStartingChips(9) === 6, 'Combined SL 8-9 receives 6 starting chips');
-  assert(calculateStartingChips(10) === 5, 'Combined SL 10 receives 5 starting chips');
+  // 2. Chip Allocation Matrix Tests (Max 5 Chips Rule)
+  assert(calculateStartingChips(5) === 5, 'Combined SL <= 6 receives MAX 5 starting chips');
+  assert(calculateStartingChips(6) === 5, 'Combined SL 6 receives MAX 5 starting chips');
+  assert(calculateStartingChips(7) === 4, 'Combined SL 7-8 receives 4 starting chips');
+  assert(calculateStartingChips(8) === 4, 'Combined SL 8 receives 4 starting chips');
+  assert(calculateStartingChips(9) === 3, 'Combined SL 9-10 receives 3 starting chips');
+  assert(calculateStartingChips(10) === 3, 'Combined SL 10 receives 3 starting chips');
+  assert(calculateStartingChips(12) === 2, 'Combined SL 12 receives 2 starting chips');
+  assert(calculateStartingChips(4, 'equal', 10) === 5, 'Equal policy enforces MAX 5 chips ceiling');
 
   // 3. State Machine & Match Resolution Tests
   const mockState = {
@@ -153,9 +164,9 @@ function runTests() {
       { id: 'tbl-1', table_number: 1, status: 'in_use', active_match_id: 'm-1' },
     ],
     teams: [
-      { id: 't-1', team_name: 'Team Alpha', starting_chips: 6, chips_remaining: 1, status: 'active' },
-      { id: 't-2', team_name: 'Team Bravo', starting_chips: 6, chips_remaining: 6, status: 'active' },
-      { id: 't-3', team_name: 'Team Charlie', starting_chips: 7, chips_remaining: 7, status: 'active' },
+      { id: 't-1', team_name: 'Team Alpha', starting_chips: 3, chips_remaining: 1, status: 'active' },
+      { id: 't-2', team_name: 'Team Bravo', starting_chips: 5, chips_remaining: 5, status: 'active' },
+      { id: 't-3', team_name: 'Team Charlie', starting_chips: 4, chips_remaining: 4, status: 'active' },
     ],
     matches: [
       { id: 'm-1', table_id: 'tbl-1', team_a_id: 't-1', team_b_id: 't-2', status: 'in_progress' },
@@ -169,7 +180,7 @@ function runTests() {
 
   // Test Pulse Stats
   const pulse = engine.getPulseStats();
-  assert(pulse.chipsRemaining === 14 && pulse.chipsTotal === 19, 'Accurately calculates Tournament Pulse Chips (14/19)');
+  assert(pulse.chipsRemaining === 10 && pulse.chipsTotal === 12, 'Accurately calculates Tournament Pulse Chips (10/12)');
   assert(pulse.playingNowCount === 2, 'Accurately counts active players playing now (2 players)');
   assert(pulse.waitingQueueCount === 1, 'Accurately counts queue on deck (1 pairing)');
 
@@ -188,7 +199,7 @@ function runTests() {
 
   assert(matchResult.success, 'Match completion returns success');
   assert(teamAlpha.status === 'eliminated' && teamAlpha.chips_remaining === 0, 'Loser at 0 chips is marked eliminated');
-  assert(teamBravo.chips_remaining === 6 && teamBravo.wins === 1, 'Winner retains full chip count and increments wins (1W)');
+  assert(teamBravo.chips_remaining === 5 && teamBravo.wins === 1, 'Winner retains full chip count and increments wins (1W)');
   assert(table1.status === 'in_use', 'Table remains in use with auto-pilot next challenger assignment');
 
   const newMatch = updatedState.matches.find((m) => m.id === table1.active_match_id);
