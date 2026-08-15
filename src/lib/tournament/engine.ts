@@ -9,11 +9,24 @@ export interface TournamentState {
   queue: QueueItem[];
 }
 
+export interface MatchSnapshot {
+  matchId: string;
+  tableId: string;
+  winnerTeamId: string;
+  loserTeamId: string;
+  loserPreChipCount: number;
+  loserPreStatus: 'active' | 'eliminated';
+  newMatchCreatedId?: string;
+  dequeuedQueueItemId?: string;
+  timestamp: string;
+}
+
 /**
  * Core In-Memory / Stored State Machine Engine for Table i-Cue Scotch Doubles Chip Tournaments.
  */
 export class TableICueEngine {
   private state: TournamentState;
+  private historyStack: MatchSnapshot[] = [];
 
   constructor(initialState: TournamentState) {
     this.state = JSON.parse(JSON.stringify(initialState));
@@ -21,6 +34,10 @@ export class TableICueEngine {
 
   public getState(): TournamentState {
     return this.state;
+  }
+
+  public getHistoryStack(): MatchSnapshot[] {
+    return this.historyStack;
   }
 
   /**
@@ -177,6 +194,66 @@ export class TableICueEngine {
   }
 
   /**
+   * Dual Confirmation Scoring:
+   * One person from each team marks winner or loser. Once both agree, the match is completed!
+   */
+  public submitTeamMatchVote(params: {
+    matchId: string;
+    reportingTeamId: string;
+    reportedWinnerId: string;
+  }): {
+    completed: boolean;
+    disputed: boolean;
+    awaitingOtherTeam: boolean;
+    winnerTeamId?: string;
+    error?: string;
+  } {
+    const match = this.state.matches.find((m) => m.id === params.matchId);
+    if (!match) return { completed: false, disputed: false, awaitingOtherTeam: false, error: 'Match not found' };
+
+    if (params.reportingTeamId === match.team_a_id) {
+      match.team_a_confirmed_winner_id = params.reportedWinnerId;
+    } else if (params.reportingTeamId === match.team_b_id) {
+      match.team_b_confirmed_winner_id = params.reportedWinnerId;
+    } else {
+      return { completed: false, disputed: false, awaitingOtherTeam: false, error: 'Reporting team not in match' };
+    }
+
+    // Check if both teams have voted
+    if (match.team_a_confirmed_winner_id && match.team_b_confirmed_winner_id) {
+      if (match.team_a_confirmed_winner_id === match.team_b_confirmed_winner_id) {
+        // Both agree on the winner! Complete match!
+        const winnerId = match.team_a_confirmed_winner_id;
+        match.is_disputed = false;
+        const res = this.completeMatch(match.id, winnerId);
+        return {
+          completed: res.success,
+          disputed: false,
+          awaitingOtherTeam: false,
+          winnerTeamId: winnerId,
+        };
+      } else {
+        // Disagreement: Dispute raised!
+        match.is_disputed = true;
+        if (match.table_id) {
+          this.requestReferee(match.table_id);
+        }
+        return {
+          completed: false,
+          disputed: true,
+          awaitingOtherTeam: false,
+        };
+      }
+    }
+
+    return {
+      completed: false,
+      disputed: false,
+      awaitingOtherTeam: true,
+    };
+  }
+
+  /**
    * Completes a match, penalizes the loser, moves loser to queue end (or eliminates),
    * keeps winner on table, and pulls next opponent from the pipeline.
    */
@@ -189,6 +266,10 @@ export class TableICueEngine {
     const winnerTeam = this.state.teams.find((t) => t.id === winnerTeamId);
 
     if (!loserTeam || !winnerTeam) return { success: false, error: 'Teams not found' };
+
+    // Record snapshot for Undo
+    const preChips = loserTeam.chips_remaining;
+    const preStatus = loserTeam.status;
 
     // 1. Update Match Record
     match.status = 'completed';
@@ -203,14 +284,15 @@ export class TableICueEngine {
     // 2. Decrement Loser's Virtual Chips
     loserTeam.chips_remaining = Math.max(0, loserTeam.chips_remaining - 1);
 
+    let loserQueueEntryId: string | undefined;
     if (loserTeam.chips_remaining === 0) {
       loserTeam.status = 'eliminated';
       const activeCount = this.state.teams.filter((t) => t.status === 'active').length;
       loserTeam.elimination_rank = activeCount + 1;
     } else {
-      // Re-insert loser at bottom of queue
+      loserQueueEntryId = `queue_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
       this.state.queue.push({
-        id: `queue_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        id: loserQueueEntryId,
         tournament_id: this.state.tournament.id,
         team_id: loserTeam.id,
         status: 'waiting',
@@ -222,16 +304,17 @@ export class TableICueEngine {
     // 3. Find Table and Assign Next Challenger from Pipeline
     const table = this.state.tables.find((tbl) => tbl.id === match.table_id);
     let newMatch: Match | undefined;
+    let dequeuedItemId: string | undefined;
 
     if (table) {
       table.referee_requested = false;
 
       if (this.state.tournament.auto_pilot) {
-        // Dequeue next waiting team in pipeline
         const nextQueueItemIndex = this.state.queue.findIndex((q) => q.status === 'waiting');
 
         if (nextQueueItemIndex !== -1) {
           const nextTeamItem = this.state.queue[nextQueueItemIndex];
+          dequeuedItemId = nextTeamItem.team_id;
           this.state.queue.splice(nextQueueItemIndex, 1);
 
           newMatch = {
@@ -257,6 +340,21 @@ export class TableICueEngine {
       }
     }
 
+    // Save snapshot to history stack
+    if (table) {
+      this.historyStack.push({
+        matchId: match.id,
+        tableId: table.id,
+        winnerTeamId,
+        loserTeamId,
+        loserPreChipCount: preChips,
+        loserPreStatus: preStatus,
+        newMatchCreatedId: newMatch?.id,
+        dequeuedQueueItemId: dequeuedItemId,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     // Check if tournament concluded
     const remainingActiveTeams = this.state.teams.filter((t) => t.status === 'active');
     if (remainingActiveTeams.length === 1) {
@@ -265,6 +363,95 @@ export class TableICueEngine {
     }
 
     return { success: true, newMatch };
+  }
+
+  /**
+   * UNDO Action: Reverts an accidental match result submission!
+   * Restores loser's chip, resets team records, removes the auto-created match,
+   * and puts the challenger back at the front of the queue.
+   */
+  public undoLastMatch(tableId?: string): { success: boolean; restoredMatch?: Match; error?: string } {
+    let snapshotIdx = -1;
+    if (tableId) {
+      for (let i = this.historyStack.length - 1; i >= 0; i--) {
+        if (this.historyStack[i].tableId === tableId) {
+          snapshotIdx = i;
+          break;
+        }
+      }
+    } else {
+      snapshotIdx = this.historyStack.length - 1;
+    }
+
+    if (snapshotIdx === -1) {
+      return { success: false, error: 'No recent match history to undo.' };
+    }
+
+    const snapshot = this.historyStack.splice(snapshotIdx, 1)[0];
+
+    // 1. Revert Teams
+    const winner = this.state.teams.find((t) => t.id === snapshot.winnerTeamId);
+    const loser = this.state.teams.find((t) => t.id === snapshot.loserTeamId);
+
+    if (winner) {
+      winner.wins = Math.max(0, (winner.wins || 1) - 1);
+    }
+    if (loser) {
+      loser.losses = Math.max(0, (loser.losses || 1) - 1);
+      loser.chips_remaining = snapshot.loserPreChipCount;
+      loser.status = snapshot.loserPreStatus;
+      loser.elimination_rank = undefined;
+
+      // Remove loser from the end of the queue if they were added
+      this.state.queue = this.state.queue.filter(
+        (q) => !(q.team_id === loser.id && q.status === 'waiting')
+      );
+    }
+
+    // 2. Revert Table & Matches
+    const table = this.state.tables.find((t) => t.id === snapshot.tableId);
+    const origMatch = this.state.matches.find((m) => m.id === snapshot.matchId);
+
+    // If a new match was spawned by auto-pilot, cancel it
+    if (snapshot.newMatchCreatedId) {
+      this.state.matches = this.state.matches.filter((m) => m.id !== snapshot.newMatchCreatedId);
+    }
+
+    // If a challenger was pulled from the queue, push them back to the front of the queue
+    if (snapshot.dequeuedQueueItemId) {
+      const challengerTeam = this.state.teams.find((t) => t.id === snapshot.dequeuedQueueItemId);
+      this.state.queue.unshift({
+        id: `queue_restored_${Date.now()}`,
+        tournament_id: this.state.tournament.id,
+        team_id: snapshot.dequeuedQueueItemId,
+        status: 'waiting',
+        entered_queue_at: new Date().toISOString(),
+        team: challengerTeam,
+      });
+    }
+
+    // Restore original match back to in_progress on the table
+    if (origMatch && table) {
+      origMatch.status = 'in_progress';
+      origMatch.winner_team_id = undefined;
+      origMatch.loser_team_id = undefined;
+      origMatch.ended_at = undefined;
+      origMatch.team_a_confirmed_winner_id = undefined;
+      origMatch.team_b_confirmed_winner_id = undefined;
+      origMatch.is_disputed = false;
+
+      table.active_match_id = origMatch.id;
+      table.status = 'in_use';
+      table.referee_requested = false;
+    }
+
+    // Revert tournament completion status if applicable
+    if (this.state.tournament.status === 'completed') {
+      this.state.tournament.status = 'in_progress';
+      this.state.tournament.ended_at = undefined;
+    }
+
+    return { success: true, restoredMatch: origMatch };
   }
 
   /**

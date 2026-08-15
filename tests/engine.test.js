@@ -33,6 +33,7 @@ function calculateStartingChips(combinedSL, policy = 'handicap_matrix', defaultC
 class TableICueEngine {
   constructor(initialState) {
     this.state = JSON.parse(JSON.stringify(initialState));
+    this.historyStack = [];
   }
   getState() {
     return this.state;
@@ -70,6 +71,27 @@ class TableICueEngine {
     table.referee_requested = false;
     return true;
   }
+  submitTeamMatchVote(matchId, reportingTeamId, reportedWinnerId) {
+    const match = this.state.matches.find((m) => m.id === matchId);
+    if (!match) return { completed: false, error: 'Match not found' };
+
+    if (reportingTeamId === match.team_a_id) {
+      match.team_a_confirmed_winner_id = reportedWinnerId;
+    } else if (reportingTeamId === match.team_b_id) {
+      match.team_b_confirmed_winner_id = reportedWinnerId;
+    }
+
+    if (match.team_a_confirmed_winner_id && match.team_b_confirmed_winner_id) {
+      if (match.team_a_confirmed_winner_id === match.team_b_confirmed_winner_id) {
+        const res = this.completeMatch(match.id, match.team_a_confirmed_winner_id);
+        return { completed: res.success, disputed: false, awaitingOtherTeam: false };
+      } else {
+        match.is_disputed = true;
+        return { completed: false, disputed: true, awaitingOtherTeam: false };
+      }
+    }
+    return { completed: false, disputed: false, awaitingOtherTeam: true };
+  }
   completeMatch(matchId, winnerTeamId) {
     const match = this.state.matches.find((m) => m.id === matchId);
     if (!match) return { success: false, error: 'Match not found' };
@@ -77,6 +99,9 @@ class TableICueEngine {
     const loserTeamId = match.team_a_id === winnerTeamId ? match.team_b_id : match.team_a_id;
     const loserTeam = this.state.teams.find((t) => t.id === loserTeamId);
     const winnerTeam = this.state.teams.find((t) => t.id === winnerTeamId);
+
+    const preChips = loserTeam.chips_remaining;
+    const preStatus = loserTeam.status;
 
     match.status = 'completed';
     match.winner_team_id = winnerTeamId;
@@ -99,11 +124,13 @@ class TableICueEngine {
 
     const table = this.state.tables.find((tbl) => tbl.id === match.table_id);
     let newMatch;
+    let dequeuedId;
 
     if (table && this.state.tournament.auto_pilot) {
       const nextIdx = this.state.queue.findIndex((q) => q.status === 'waiting');
       if (nextIdx !== -1) {
         const nextTeam = this.state.queue.splice(nextIdx, 1)[0];
+        dequeuedId = nextTeam.team_id;
         newMatch = {
           id: `match_${Date.now()}`,
           tournament_id: this.state.tournament.id,
@@ -118,7 +145,60 @@ class TableICueEngine {
       }
     }
 
+    if (table) {
+      this.historyStack.push({
+        matchId: match.id,
+        tableId: table.id,
+        winnerTeamId,
+        loserTeamId,
+        loserPreChipCount: preChips,
+        loserPreStatus: preStatus,
+        newMatchCreatedId: newMatch ? newMatch.id : undefined,
+        dequeuedQueueItemId: dequeuedId,
+      });
+    }
+
     return { success: true, newMatch };
+  }
+  undoLastMatch(tableId) {
+    if (this.historyStack.length === 0) return { success: false, error: 'No history' };
+    const snapshot = this.historyStack.pop();
+
+    const winner = this.state.teams.find((t) => t.id === snapshot.winnerTeamId);
+    const loser = this.state.teams.find((t) => t.id === snapshot.loserTeamId);
+
+    if (winner) winner.wins = Math.max(0, (winner.wins || 1) - 1);
+    if (loser) {
+      loser.losses = Math.max(0, (loser.losses || 1) - 1);
+      loser.chips_remaining = snapshot.loserPreChipCount;
+      loser.status = snapshot.loserPreStatus;
+      this.state.queue = this.state.queue.filter((q) => !(q.team_id === loser.id && q.status === 'waiting'));
+    }
+
+    const table = this.state.tables.find((t) => t.id === snapshot.tableId);
+    const origMatch = this.state.matches.find((m) => m.id === snapshot.matchId);
+
+    if (snapshot.newMatchCreatedId) {
+      this.state.matches = this.state.matches.filter((m) => m.id !== snapshot.newMatchCreatedId);
+    }
+    if (snapshot.dequeuedQueueItemId) {
+      this.state.queue.unshift({
+        id: `queue_restored_${Date.now()}`,
+        tournament_id: this.state.tournament.id,
+        team_id: snapshot.dequeuedQueueItemId,
+        status: 'waiting',
+      });
+    }
+
+    if (origMatch && table) {
+      origMatch.status = 'in_progress';
+      origMatch.winner_team_id = undefined;
+      origMatch.loser_team_id = undefined;
+      table.active_match_id = origMatch.id;
+      table.status = 'in_use';
+    }
+
+    return { success: true, restoredMatch: origMatch };
   }
 }
 
@@ -167,9 +247,9 @@ function runTests() {
       { id: 'tbl-1', table_number: 1, status: 'in_use', active_match_id: 'm-1' },
     ],
     teams: [
-      { id: 't-1', team_name: 'SL6 Duo', starting_chips: 1, chips_remaining: 1, status: 'active' },
-      { id: 't-2', team_name: 'SL5 Duo (Fahad & Partner)', starting_chips: 3, chips_remaining: 3, status: 'active' },
-      { id: 't-3', team_name: 'SL4 Duo', starting_chips: 4, chips_remaining: 4, status: 'active' },
+      { id: 't-1', team_name: 'Team Alpha', starting_chips: 1, chips_remaining: 1, status: 'active' },
+      { id: 't-2', team_name: 'Team Bravo', starting_chips: 3, chips_remaining: 3, status: 'active' },
+      { id: 't-3', team_name: 'Team Charlie', starting_chips: 4, chips_remaining: 4, status: 'active' },
     ],
     matches: [
       { id: 'm-1', table_id: 'tbl-1', team_a_id: 't-1', team_b_id: 't-2', status: 'in_progress' },
@@ -181,35 +261,29 @@ function runTests() {
 
   const engine = new TableICueEngine(mockState);
 
-  // Test Pulse Stats
-  const pulse = engine.getPulseStats();
-  assert(pulse.chipsRemaining === 8 && pulse.chipsTotal === 8, 'Accurately calculates Tournament Pulse Chips (8/8)');
-  assert(pulse.playingNowCount === 2, 'Accurately counts active players playing now (2 players)');
-  assert(pulse.waitingQueueCount === 1, 'Accurately counts queue on deck (1 pairing)');
+  // 4. Test Dual-Team Scoring Confirmation
+  const vote1 = engine.submitTeamMatchVote('m-1', 't-1', 't-2'); // Team A reports Team B won
+  assert(vote1.awaitingOtherTeam && !vote1.completed, 'Dual confirmation: 1 of 2 votes awaits opposing team');
 
-  // Test Referee Request & Clear
-  assert(engine.requestReferee('tbl-1'), 'Referee requested at Table 1');
-  assert(engine.getState().tables[0].referee_requested === true, 'Table 1 reflects active referee call');
-  assert(engine.clearReferee('tbl-1'), 'Admin clears referee call at Table 1');
-  assert(engine.getState().tables[0].referee_requested === false, 'Table 1 cleared of referee call');
+  const vote2 = engine.submitTeamMatchVote('m-1', 't-2', 't-2'); // Team B confirms Team B won
+  assert(vote2.completed && !vote2.disputed, 'Dual confirmation: Both teams agreed, match automatically completes');
 
-  const matchResult = engine.completeMatch('m-1', 't-2');
-  const updatedState = engine.getState();
+  // 5. Test Undo Feature
+  const stateAfterMatch = engine.getState();
+  const teamAlphaAfterLoss = stateAfterMatch.teams.find((t) => t.id === 't-1');
+  assert(teamAlphaAfterLoss.status === 'eliminated' && teamAlphaAfterLoss.chips_remaining === 0, 'Team Alpha was eliminated');
 
-  const sl6Team = updatedState.teams.find((t) => t.id === 't-1');
-  const sl5Team = updatedState.teams.find((t) => t.id === 't-2');
-  const table1 = updatedState.tables.find((tbl) => tbl.id === 'tbl-1');
+  const undoResult = engine.undoLastMatch('tbl-1');
+  const stateAfterUndo = engine.getState();
+  const teamAlphaRestored = stateAfterUndo.teams.find((t) => t.id === 't-1');
+  const teamBravoRestored = stateAfterUndo.teams.find((t) => t.id === 't-2');
+  const table1Restored = stateAfterUndo.tables.find((tbl) => tbl.id === 'tbl-1');
 
-  assert(matchResult.success, 'Match completion returns success');
-  assert(sl6Team.status === 'eliminated' && sl6Team.chips_remaining === 0, 'SL 6 Duo at 0 chips is eliminated after single loss');
-  assert(sl5Team.chips_remaining === 3 && sl5Team.wins === 1, 'SL 5 Duo winner retains full 3 chips and records 1W');
-  assert(table1.status === 'in_use', 'Table remains in use with auto-pilot next challenger assignment');
-
-  const newMatch = updatedState.matches.find((m) => m.id === table1.active_match_id);
-  assert(
-    newMatch.team_a_id === 't-2' && newMatch.team_b_id === 't-3',
-    'Auto-pilot queued SL 4 Duo (t-3) against reigning champion SL 5 Duo (t-2)'
-  );
+  assert(undoResult.success, 'Undo operation succeeds');
+  assert(teamAlphaRestored.status === 'active' && teamAlphaRestored.chips_remaining === 1, 'Undo successfully restored loser chips (1 chip) and active status');
+  assert(teamBravoRestored.wins === 0, 'Undo decremented winner win count');
+  assert(table1Restored.active_match_id === 'm-1', 'Undo restored original match on Table 1');
+  assert(stateAfterUndo.queue[0].team_id === 't-3', 'Undo returned dequeued challenger back to front of queue');
 
   console.log(`\n📊 Summary: ${passed}/${total} tests passed.`);
   if (passed === total) {

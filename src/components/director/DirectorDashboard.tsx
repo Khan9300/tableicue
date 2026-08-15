@@ -7,6 +7,7 @@ import { VirtualChips } from '../score/VirtualChips';
 import { registerTeamAction, completeMatchAction, adjustChipsAction, clearRefereeAction } from '../../lib/tournament/actions';
 import { TOURNAMENT_SCENARIOS } from '../../lib/tournament/scenarios';
 import { TournamentScenario } from '../../lib/types/tournament';
+import { sounds } from '../../lib/audio/soundEffects';
 
 interface DirectorDashboardProps {
   initialState: TournamentState;
@@ -16,6 +17,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
   const [engine, setEngine] = useState(() => new TableICueEngine(initialState));
   const [state, setState] = useState<TournamentState>(() => engine.getState());
   const [isScenarioModalOpen, setIsScenarioModalOpen] = useState(false);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   // Registration Form State
   const [player1Name, setPlayer1Name] = useState('');
@@ -41,6 +43,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
     engine.applyScenario(scenario);
     updateState();
     setIsScenarioModalOpen(false);
+    setActionNotice(`Tournament preset switched to: ${scenario.name}`);
   };
 
   const handleRegisterTeam = async (e: React.FormEvent) => {
@@ -82,6 +85,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
     setPlayer2SL(3);
     setPlayer2Id(undefined);
     updateState();
+    setActionNotice(`Pairing "${combinedName}" registered with ${result.team?.starting_chips} starting chips!`);
 
     registerTeamAction({
       tournamentId: state.tournament.id,
@@ -99,11 +103,13 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
     const loserId = match?.team_a_id === winnerId ? match?.team_b_id : match?.team_a_id;
     const tableId = match?.table_id;
 
+    sounds.playVictory();
     const res = engine.completeMatch(matchId, winnerId);
     if (!res.success) {
       alert(res.error);
     } else {
       updateState();
+      setActionNotice(`Match finalized! Winner retained table; next challenger dequeued.`);
 
       if (loserId && tableId) {
         completeMatchAction({
@@ -115,6 +121,17 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
           autoPilot: state.tournament.auto_pilot,
         }).catch((err) => console.error('Supabase completeMatch sync warning:', err));
       }
+    }
+  };
+
+  const handleUndoMatch = (tableId?: string) => {
+    const res = engine.undoLastMatch(tableId);
+    if (res.success) {
+      updateState();
+      sounds.playBallStrike();
+      setActionNotice('↩️ Previous match result undone! Chips and player records restored.');
+    } else {
+      alert(res.error || 'No recent match to undo.');
     }
   };
 
@@ -169,6 +186,14 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
         {/* Action Controls & Presets */}
         <div className="flex items-center gap-3 flex-wrap">
           <button
+            onClick={() => handleUndoMatch()}
+            className="bg-[#222] hover:bg-[#333] border border-[#444] text-white px-3.5 py-2 rounded-xl text-xs font-bold font-mono transition-colors shadow flex items-center gap-1.5"
+            title="Undo accidental match result"
+          >
+            <span>↩️</span> Undo Last Result
+          </button>
+
+          <button
             onClick={() => setIsScenarioModalOpen(true)}
             className="bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] text-[#12B5CB] px-3.5 py-2 rounded-xl text-xs font-bold font-mono transition-colors shadow flex items-center gap-1.5"
           >
@@ -197,6 +222,14 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
           </div>
         </div>
       </div>
+
+      {/* ACTION NOTICE BANNER */}
+      {actionNotice && (
+        <div className="p-3 bg-[#1a1a1a] border border-[#12B5CB] rounded-xl text-xs text-white font-mono flex items-center justify-between shadow">
+          <span>{actionNotice}</span>
+          <button onClick={() => setActionNotice(null)} className="text-[#888] hover:text-white ml-2">✕</button>
+        </div>
+      )}
 
       {/* TOURNAMENT PULSE STATS */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -259,7 +292,7 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
                 REFEREE REQUESTED AT TABLE {refereeRequestedTables.map((t) => `#${t.table_number}`).join(', ')}
               </div>
               <div className="text-xs text-red-400">
-                Players requested director assistance to watch a close hit / legal shot.
+                Players requested director assistance to watch a close hit or resolve a scoring dispute.
               </div>
             </div>
           </div>
@@ -284,15 +317,24 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
             <h2 className="text-lg font-bold flex items-center gap-2">
               <span className="text-[#12B5CB]">⚡</span> Lucky Cue Tables (1–6)
             </h2>
-            <button
-              onClick={() => {
-                engine.autoAssignTables();
-                updateState();
-              }}
-              className="text-xs bg-[#1A1A1A] hover:bg-[#252525] border border-[#333] px-3 py-1.5 rounded-lg text-white font-mono transition-colors"
-            >
-              Auto-Assign Open Tables
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleUndoMatch()}
+                className="text-xs bg-[#222] hover:bg-[#333] border border-[#444] px-3 py-1.5 rounded-lg text-white font-mono transition-colors"
+                title="Undo last match"
+              >
+                ↩️ Undo Last Match
+              </button>
+              <button
+                onClick={() => {
+                  engine.autoAssignTables();
+                  updateState();
+                }}
+                className="text-xs bg-[#1A1A1A] hover:bg-[#252525] border border-[#333] px-3 py-1.5 rounded-lg text-white font-mono transition-colors"
+              >
+                Auto-Assign Open Tables
+              </button>
+            </div>
           </div>
 
           {/* 6-Table Grid */}
@@ -368,6 +410,16 @@ export const DirectorDashboard: React.FC<DirectorDashboardProps> = ({ initialSta
                           className="bg-green-600 hover:bg-green-500 active:scale-95 text-white font-bold text-[11px] px-2.5 py-1 rounded transition-all shadow"
                         >
                           Win 🏆
+                        </button>
+                      </div>
+
+                      {/* Single Table Undo Action */}
+                      <div className="pt-1 flex justify-end">
+                        <button
+                          onClick={() => handleUndoMatch(table.id)}
+                          className="text-[10px] text-[#777] hover:text-white underline font-mono"
+                        >
+                          ↩️ Undo Table {table.table_number}
                         </button>
                       </div>
                     </div>

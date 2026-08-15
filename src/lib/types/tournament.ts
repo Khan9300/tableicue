@@ -77,6 +77,9 @@ export interface Match {
   status: MatchStatus;
   winner_team_id?: string;
   loser_team_id?: string;
+  team_a_confirmed_winner_id?: string;
+  team_b_confirmed_winner_id?: string;
+  is_disputed?: boolean;
   started_at: string;
   ended_at?: string;
 }
