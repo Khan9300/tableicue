@@ -483,8 +483,13 @@ export default function TocMatchDay() {
   const deleteLast = () => updateMatch((mm) => ({ ...mm, rounds: mm.rounds.slice(0, -1) }));
 
   const resetMatch = () => {
-    if (typeof window !== 'undefined' && !window.confirm(`Clear all rounds for ${info.label}?`)) return;
+    if (typeof window !== 'undefined' && !window.confirm(`Reset ${info.label}? This clears the coin toss and every round. Roster and settings stay. Undo can bring it back.`)) return;
     updateMatch((mm) => freshMatch(mm.opponent));
+  };
+
+  const resetAll = () => {
+    if (typeof window !== 'undefined' && !window.confirm('Reset everything? Both matches, who is here, SL fixes, form taps, and added players go back to this morning. Undo can bring it back.')) return;
+    commit({ ...DEFAULT_STATE, tab: 'match' });
   };
 
   const addPlayer = (teamKey: string) => {
@@ -1587,6 +1592,9 @@ export default function TocMatchDay() {
       <button onClick={resetMatch} className="rounded-xl border border-[#6B2626] py-3 text-sm font-semibold text-[#FF7A7A]">
         Reset {info.label}
       </button>
+      <button onClick={resetAll} className="rounded-xl bg-[#3A1414] py-3 text-sm font-semibold text-[#FF7A7A]">
+        Reset everything (both matches, roster, SL fixes)
+      </button>
     </div>
   );
 
@@ -1611,9 +1619,6 @@ export default function TocMatchDay() {
                   {MATCHES[id].label.replace('Match ', '')} · {MATCHES[id].time.replace(':00 ', '')}
                 </button>
               ))}
-              <button onClick={undo} className="rounded-full border border-[#17393A] px-2.5 py-1 text-xs font-semibold text-[#9FBDBD]" aria-label="Undo last change">
-                Undo
-              </button>
             </div>
           </div>
           <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-end gap-2">
@@ -1638,12 +1643,29 @@ export default function TocMatchDay() {
               </p>
             </div>
           </div>
-          <div className="mt-2.5 flex justify-center gap-1.5" aria-label="Rounds">
-            {Array.from({ length: ROUNDS }, (_, i) => {
-              const r = m.rounds[i];
-              const c = r?.winner === 'us' ? 'bg-[#00D8D8]' : r?.winner === 'them' ? 'bg-[#FF7A7A]' : i === roundIndex && m.firstDeclarer ? 'bg-[#FCC048]' : 'bg-[#17393A]';
-              return <span key={i} className={`h-1.5 w-9 rounded-full ${c}`} />;
-            })}
+          <div className="mt-2.5 flex items-center gap-2">
+            <button
+              onClick={undo}
+              disabled={history.current.length === 0}
+              className="rounded-full border border-[#17393A] px-3 py-1.5 text-xs font-semibold text-[#FCFCFC] disabled:opacity-35"
+              aria-label="Undo last change"
+            >
+              ↶ Undo
+            </button>
+            <div className="flex flex-1 justify-center gap-1.5" aria-label="Rounds">
+              {Array.from({ length: ROUNDS }, (_, i) => {
+                const r = m.rounds[i];
+                const c = r?.winner === 'us' ? 'bg-[#00D8D8]' : r?.winner === 'them' ? 'bg-[#FF7A7A]' : i === roundIndex && m.firstDeclarer ? 'bg-[#FCC048]' : 'bg-[#17393A]';
+                return <span key={i} className={`h-1.5 w-7 rounded-full ${c}`} />;
+              })}
+            </div>
+            <button
+              onClick={resetMatch}
+              className="rounded-full border border-[#6B2626] px-3 py-1.5 text-xs font-semibold text-[#FF7A7A]"
+              aria-label={`Reset ${info.label}`}
+            >
+              Reset
+            </button>
           </div>
         </div>
       </header>
