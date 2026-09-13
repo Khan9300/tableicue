@@ -68,6 +68,10 @@ interface LiveRow {
 
 const STORAGE_KEY = 'ticue-toc-2026-09-13-v3';
 const HERE_TODAY = ['jason', 'felix', 'fahad', 'tristen', 'mircea', 'umber'];
+/** Players who can only play from a later round (0-based). */
+const LATE_FROM: Record<string, { round: number; note: string }> = { tristen: { round: 4, note: 'arrives about 4:15' } };
+/** Round (0-based) a team-call player is locked to. Paul leaves at 4, so he plays round 2. */
+const FORCE_ROUND: Record<string, number> = { mircea: 1 };
 const freshMatch = (opponent: string): MatchState => ({ opponent, tossWinner: null, firstDeclarer: null, rounds: [] });
 const DEFAULT_STATE: AppState = {
   v: 3,
@@ -361,7 +365,8 @@ export default function TocMatchDay() {
   const strat = strategy(usPts, themPts, roundsLeft);
   const matchOver = strat.mode === 'Clinched' || strat.mode === 'Eliminated' || strat.mode === 'Final';
   const firstUpId = state.firstUp?.[state.active] ?? null;
-  const forcedId = roundIndex === 0 && firstUpId && ourPoolNow.some((p) => p.id === firstUpId) ? firstUpId : null;
+  const forceRound = firstUpId ? FORCE_ROUND[firstUpId] ?? 0 : 0;
+  const forcedId = firstUpId && roundIndex === forceRound && ourPoolNow.some((p) => p.id === firstUpId) ? firstUpId : null;
   const forcedName = forcedId ? byId(forcedId)?.name.split(' ')[0] ?? '' : '';
 
   const calcKey = JSON.stringify([state.active, m, state.present, state.sl, state.form, state.added, state.firstUp, live.updated, live.status]);
@@ -393,13 +398,16 @@ export default function TocMatchDay() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calcKey, counters]);
 
-  const lockOthers = (list: Option[]): Option[] =>
-    forcedId && list.some((o) => o.player.id === forcedId)
+  const lockOthers = (list: Option[]): Option[] => {
+    const isLate = (o: Option) => (LATE_FROM[o.player.id]?.round ?? 0) > roundIndex;
+    const base = list.map((o) => (isLate(o) ? { ...o, legal: false, lockedOut: true } : o));
+    return forcedId && base.some((o) => o.player.id === forcedId)
       ? [
-          ...list.filter((o) => o.player.id === forcedId),
-          ...list.filter((o) => o.player.id !== forcedId).map((o) => ({ ...o, legal: false, lockedOut: true })),
+          ...base.filter((o) => o.player.id === forcedId),
+          ...base.filter((o) => o.player.id !== forcedId).map((o) => ({ ...o, legal: false, lockedOut: true })),
         ]
-      : list;
+      : [...base.filter((o) => !o.lockedOut), ...base.filter((o) => o.lockedOut)];
+  };
   const shownCounters = lockOthers(counters);
   const shownPutUps = lockOthers(putUps);
 
@@ -747,16 +755,20 @@ export default function TocMatchDay() {
   const reasonFor = (o: Option, list: Option[], vs: Player | null): string => {
     const p = o.player;
     const first = p.name.split(' ')[0];
-    if (o.lockedOut) return `${forcedName} plays round 1 by team call. Available from round 2.`;
+    if (o.lockedOut) {
+      const late = LATE_FROM[p.id];
+      if (late && late.round > roundIndex) return `${first} ${late.note}. Save for round ${late.round + 1}.`;
+      return `${forcedName} plays round ${forceRound + 1} by team call.`;
+    }
     if (!o.legal) return 'Would break the 23 cap for the rest of our lineup.';
     const isTop = list[0]?.player.id === p.id;
     if (!vs) {
       const t = toughest(p);
-      const lead = forcedId === p.id ? 'Plays round 1 by team call. ' : isTop ? 'Holds up best against every answer. ' : '';
+      const lead = forcedId === p.id ? `Plays round ${forceRound + 1} by team call (leaves at 4). ` : isTop ? 'Holds up best against every answer. ' : '';
       return `${lead}Toughest answers: ${t || 'none on file'}.`;
     }
     if (!o.o) return 'No data on their roster yet. Ranked by our record only.';
-    if (forcedId === p.id) return `Plays round 1 by team call. ${pct(o.o.pWin)} to win against ${vs.name.split(' ')[0]}.`;
+    if (forcedId === p.id) return `Plays round ${forceRound + 1} by team call (leaves at 4). ${pct(o.o.pWin)} to win against ${vs.name.split(' ')[0]}.`;
     if (vs.avoid?.includes(p.id)) return `Avoid. ${vs.name} is ${record(vs)} and this is exactly their best spot.`;
     const bc = bestChanceId(list);
     if (p.sl <= 3 && vs.sl >= 6) {
@@ -971,10 +983,19 @@ export default function TocMatchDay() {
         </Card>
       )}
 
-      {roundIndex === 0 && firstUpId && (
+      {!usedOurs.includes('tristen') && !matchOver && (
+        <div className="rounded-2xl border border-[#6B2626] bg-[#1C0B0B] p-3 text-sm text-[#FF9A9A]">
+          <p className="font-semibold text-[#FF7A7A]">Tristen arrives about 4:15 · plays round 5</p>
+          <p className="mt-0.5">
+            Locked five: Felix, Paul, Umber, Tristen + ONE of Fahad or Jason. Never play Fahad and Jason both: that makes the 23 rule impossible and can lose the whole team match. If Tristen is not here when round 5 is called, it is a forfeit (3 points to them), which is legal.
+          </p>
+        </div>
+      )}
+
+      {firstUpId && roundIndex <= forceRound && !usedOurs.includes(firstUpId) && (
         <div className="rounded-2xl border border-[#6B5418] bg-[#1A1606] p-3 text-sm text-[#FCC048]">
           <p>
-            <span className="font-semibold">{byId(firstUpId)?.name}</span> plays round 1 (team call).
+            <span className="font-semibold">{byId(firstUpId)?.name}</span> plays round {forceRound + 1} (team call, leaves at 4).
           </p>
           {mustPlay.filter((p) => p.id !== firstUpId).length > 0 && (
             <p className="mt-0.5 text-[#E8D39A]">
