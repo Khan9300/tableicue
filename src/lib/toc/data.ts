@@ -23,6 +23,8 @@ export interface Player {
   /** Record change Aug 12 → Sep 11. */
   recent?: { w: number; l: number } | null;
   scout?: string;
+  /** Name used in the league database, if different. */
+  alias?: string;
   maxThreat?: boolean;
   confirm?: boolean;
   /** Our player ids that should not be sent against this opponent. */
@@ -54,7 +56,7 @@ export const OUR_TEAM: Team = {
     { id: 'kobe', name: 'Kobe Barredo', sl: 6, wins: 2, losses: 2, recent: { w: 0, l: 0 }, scout: 'Career 8-3 on the team. High ceiling shotmaker.' },
     { id: 'fahad', name: 'Fahad Khan', sl: 5, wins: 8, losses: 2, otherTeams: [{ team: 'The Predators 8', w: 5, l: 5, sl: 5 }], recent: { w: 1, l: 0 }, scout: 'Team MVP form. Game control and safeties.' },
     { id: 'tristen', name: 'Tristen Waters', sl: 4, wins: 7, losses: 5, recent: { w: 2, l: 0 }, scout: 'Battle-tested under pressure.' },
-    { id: 'mircea', name: 'Mircea Marinescu', sl: 4, wins: 4, losses: 3, recent: { w: 1, l: 1 }, scout: 'Reliable pocketing, disciplined shot selection.' },
+    { id: 'mircea', name: 'Paul Marinescu', alias: 'Mircea Marinescu', sl: 4, wins: 4, losses: 3, recent: { w: 1, l: 1 }, scout: 'Goes by Paul (Mircea on some records). Reliable pocketing, disciplined shot selection. Plays round 1 of Match #10: leaves for work at 4, back for Match #21.' },
     { id: 'umber', name: 'Umber Chohan', sl: 3, wins: 2, losses: 7, recent: { w: 0, l: 1 }, scout: 'Only needs 2 games. Best against a 3, or as a trap against a 7.' },
     { id: 'bailey', name: 'Bailey Watts', sl: 3, wins: 2, losses: 2, recent: { w: 0, l: 1 }, confirm: true, scout: 'Confirm TOC roster eligibility.' },
   ],

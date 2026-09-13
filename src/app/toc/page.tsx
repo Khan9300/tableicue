@@ -44,7 +44,7 @@ interface MatchState {
 }
 
 interface AppState {
-  v: 2;
+  v: 3;
   active: MatchId;
   tab: Tab;
   matches: Record<MatchId, MatchState>;
@@ -54,6 +54,8 @@ interface AppState {
   added: Record<string, Player[]>;
   customTeams: { key: string; name: string }[];
   viewTeam: string | null;
+  /** Player who must play round 1 of each match (team call). */
+  firstUp: Record<MatchId, string | null>;
 }
 
 interface LiveRow {
@@ -63,19 +65,21 @@ interface LiveRow {
   played: number;
 }
 
-const STORAGE_KEY = 'ticue-toc-2026-09-13-v2';
+const STORAGE_KEY = 'ticue-toc-2026-09-13-v3';
+const HERE_TODAY = ['jason', 'felix', 'fahad', 'tristen', 'mircea', 'umber'];
 const freshMatch = (opponent: string): MatchState => ({ opponent, tossWinner: null, firstDeclarer: null, rounds: [] });
 const DEFAULT_STATE: AppState = {
-  v: 2,
+  v: 3,
   active: 'm10',
   tab: 'match',
   matches: { m10: freshMatch('roc'), m21: freshMatch('wolfpack') },
-  present: Object.fromEntries(OUR_TEAM.players.map((p) => [p.id, !p.confirm])),
+  present: Object.fromEntries(OUR_TEAM.players.map((p) => [p.id, HERE_TODAY.includes(p.id)])),
   sl: {},
   form: {},
   added: {},
   customTeams: [],
   viewTeam: null,
+  firstUp: { m10: 'mircea', m21: null },
 };
 
 const other = (s: Side): Side => (s === 'us' ? 'them' : 'us');
@@ -205,7 +209,7 @@ export default function TocMatchDay() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as AppState;
-        if (parsed?.v === 2 && parsed.matches?.m10 && parsed.matches?.m21) setState({ ...DEFAULT_STATE, ...parsed });
+        if (parsed?.v === 3 && parsed.matches?.m10 && parsed.matches?.m21) setState({ ...DEFAULT_STATE, ...parsed });
       }
     } catch {
       /* storage blocked: start fresh */
@@ -300,7 +304,7 @@ export default function TocMatchDay() {
         };
 
   const decorate = (team: Team) => (p: Player): Player => {
-    const lr = team.dbName ? live.rows[`${team.dbName}|${p.name}`] : undefined;
+    const lr = team.dbName ? live.rows[`${team.dbName}|${p.alias ?? p.name}`] : undefined;
     const liveRecord = lr && lr.played > 0 ? { wins: lr.w, losses: lr.l } : {};
     const liveSl = lr && lr.sl > 0 ? lr.sl : p.sl;
     return { ...p, ...liveRecord, sl: state.sl[p.id] ?? liveSl, form: state.form[p.id] };
@@ -355,8 +359,11 @@ export default function TocMatchDay() {
 
   const strat = strategy(usPts, themPts, roundsLeft);
   const matchOver = strat.mode === 'Clinched' || strat.mode === 'Eliminated' || strat.mode === 'Final';
+  const firstUpId = state.firstUp?.[state.active] ?? null;
+  const forcedId = roundIndex === 0 && firstUpId && ourPoolNow.some((p) => p.id === firstUpId) ? firstUpId : null;
+  const forcedName = forcedId ? byId(forcedId)?.name.split(' ')[0] ?? '' : '';
 
-  const calcKey = JSON.stringify([state.active, m, state.present, state.sl, state.form, state.added, live.updated, live.status]);
+  const calcKey = JSON.stringify([state.active, m, state.present, state.sl, state.form, state.added, state.firstUp, live.updated, live.status]);
 
   const counters = useMemo<Option[]>(
     () =>
@@ -375,17 +382,47 @@ export default function TocMatchDay() {
     [calcKey],
   );
   const plan = useMemo(() => {
-    const k = ROUNDS - m.rounds.length;
-    let pool = ourAvail;
-    let budget = ourBudget;
-    if (current && !ourPick && counters[0]?.legal) {
-      pool = ourAvail.filter((p) => p.id !== counters[0].player.id);
-      budget -= counters[0].player.sl;
-    }
-    if (!m.firstDeclarer) return future(ours.filter((p) => state.present[p.id]), theirs, ROUNDS, CAP, CAP);
+    const planned = forcedId && !ourPick ? byId(forcedId) : current && !ourPick && counters[0]?.legal ? counters[0].player : null;
+    const reserve = planned && (current || forcedId) ? planned : null;
+    const k = ROUNDS - m.rounds.length - (reserve && !current ? 1 : 0);
+    const pool = reserve ? ourAvail.filter((p) => p.id !== reserve.id) : ourAvail;
+    const budget = ourBudget - (reserve?.sl ?? 0);
+    if (!m.firstDeclarer && !reserve) return future(ours.filter((p) => state.present[p.id]), theirs, ROUNDS, CAP, CAP);
     return future(pool, theirAvail, k, budget, theirBudget);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calcKey, counters]);
+
+  const lockOthers = (list: Option[]): Option[] =>
+    forcedId && list.some((o) => o.player.id === forcedId)
+      ? [
+          ...list.filter((o) => o.player.id === forcedId),
+          ...list.filter((o) => o.player.id !== forcedId).map((o) => ({ ...o, legal: false, lockedOut: true })),
+        ]
+      : list;
+  const shownCounters = lockOthers(counters);
+  const shownPutUps = lockOthers(putUps);
+
+  const legalLineups = (() => {
+    const pool = ours.filter((p) => state.present[p.id] || usedOurs.includes(p.id));
+    const must = [...usedOurs, ...(firstUpId && pool.some((p) => p.id === firstUpId) ? [firstUpId] : [])];
+    const out: Player[][] = [];
+    const pick = (start: number, cur: Player[]) => {
+      if (cur.length === 5) {
+        if (cur.reduce((a, p) => a + p.sl, 0) <= CAP && must.every((id) => cur.some((p) => p.id === id))) out.push(cur.slice());
+        return;
+      }
+      for (let i = start; i < pool.length; i++) {
+        cur.push(pool[i]);
+        pick(i + 1, cur);
+        cur.pop();
+      }
+    };
+    pick(0, []);
+    return out;
+  })();
+  const mustPlay = legalLineups.length
+    ? ours.filter((p) => !usedOurs.includes(p.id) && legalLineups.every((l) => l.some((x) => x.id === p.id)))
+    : [];
 
   /* ---- actions ---- */
   const choose = (side: Side, id: string | null) =>
@@ -479,6 +516,12 @@ export default function TocMatchDay() {
 
   const reasonFor = (o: Option, list: Option[], vs: Player | null): string => {
     const p = o.player;
+    if (o.lockedOut) return `${forcedName} plays round 1 by team call. Available from round 2.`;
+    if (forcedId && p.id === forcedId && o.o) {
+      return vs
+        ? `Plays round 1 by team call. ${pct(o.o.pWin)} to win against ${vs.name.split(' ')[0]}.`
+        : `Plays round 1 by team call.${o.response ? ` Their best answer is ${o.response.name} (${o.response.sl}).` : ''}`;
+    }
     if (!o.legal) return 'Would break the 23 cap for the rest of our lineup.';
     if (!o.o) return 'No data on their roster yet. Ranked by our record only.';
     if (vs?.avoid?.includes(p.id)) return `Avoid. ${vs.name} is ${record(vs)} and this is exactly their best spot.`;
@@ -656,7 +699,16 @@ export default function TocMatchDay() {
             <>
               <h3 className={`${DISPLAY} mt-5 text-xl font-bold uppercase text-[#FCFCFC]`}>Who puts up first in round 1?</h3>
               {m.tossWinner === 'us' && (
-                <p className="mt-1 text-sm text-[#FCC048]">Recommended: make them put up first. We get the counter-pick in rounds 1, 3 and 5.</p>
+                <p className="mt-1 text-sm text-[#FCC048]">
+                  {firstUpId
+                    ? `Recommended: make them put up first. ${byId(firstUpId)?.name.split(' ')[0]} plays round 1 either way, so they can't pick a matchup against ${byId(firstUpId)?.name.split(' ')[0]}. We counter in rounds 3 and 5.`
+                    : 'Recommended: make them put up first. We get the counter-pick in rounds 1, 3 and 5.'}
+                </p>
+              )}
+              {m.tossWinner === 'them' && firstUpId && (
+                <p className="mt-1 text-sm text-[#FF7A7A]">
+                  If they make us put up first, {byId(firstUpId)?.name.split(' ')[0]} is revealed in round 1 and they get to counter.
+                </p>
               )}
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <button
@@ -674,6 +726,19 @@ export default function TocMatchDay() {
             </>
           )}
         </Card>
+      )}
+
+      {roundIndex === 0 && firstUpId && (
+        <div className="rounded-2xl border border-[#6B5418] bg-[#1A1606] p-3 text-sm text-[#FCC048]">
+          <p>
+            <span className="font-semibold">{byId(firstUpId)?.name}</span> plays round 1 (team call).
+          </p>
+          {mustPlay.filter((p) => p.id !== firstUpId).length > 0 && (
+            <p className="mt-0.5 text-[#E8D39A]">
+              Cap check: {mustPlay.filter((p) => p.id !== firstUpId).map((p) => p.name.split(' ')[0]).join(' and ')} must play this match. {legalLineups.length} legal lineups left (see Plan).
+            </p>
+          )}
+        </div>
       )}
 
       {m.firstDeclarer && (
@@ -773,7 +838,7 @@ export default function TocMatchDay() {
                 {theirPick.scout && <p className="mt-2 rounded-xl bg-[#0F2021] px-3 py-2 text-sm text-[#9FBDBD]">{theirPick.scout}</p>}
                 <Eyebrow className="mt-4">All our options · tap one, then lock in</Eyebrow>
                 <div className="mt-2 grid gap-2">
-                  {counters.map((o, i, list) => (
+                  {shownCounters.map((o, i, list) => (
                     <OptionCard key={o.player.id} o={o} i={i} list={list} vs={theirPick} />
                   ))}
                 </div>
@@ -784,7 +849,7 @@ export default function TocMatchDay() {
               <h2 className={`${DISPLAY} mt-2 text-2xl font-extrabold uppercase text-[#FCFCFC]`}>Our put-up</h2>
               <p className="mt-0.5 text-sm text-[#9FBDBD]">Each option assumes their most damaging answer. Tap one, then lock in.</p>
               <div className="mt-3 grid gap-2">
-                {putUps.map((o, i, list) => (
+                {shownPutUps.map((o, i, list) => (
                   <OptionCard key={o.player.id} o={o} i={i} list={list} vs={null} />
                 ))}
               </div>
@@ -916,6 +981,30 @@ export default function TocMatchDay() {
               <p className="text-[11px] uppercase tracking-wider text-[#6E9696]">{k}</p>
             </div>
           ))}
+        </div>
+      </Card>
+
+      <Card>
+        <Eyebrow>Legal lineups for {info.label}</Eyebrow>
+        <p className="mt-1 text-sm text-[#9FBDBD]">
+          {legalLineups.length} way{legalLineups.length === 1 ? '' : 's'} to field 5 under 23
+          {firstUpId ? ` with ${byId(firstUpId)?.name.split(' ')[0]} playing first` : ''}.
+          {mustPlay.length ? ` Must play: ${mustPlay.map((p) => p.name.split(' ')[0]).join(', ')}.` : ''}
+        </p>
+        <div className="mt-2 grid gap-1.5">
+          {legalLineups.slice(0, 8).map((l, i) => (
+            <div key={i} className="flex items-center justify-between gap-2 rounded-xl bg-[#0F2021] px-3 py-2 text-sm">
+              <span className="min-w-0 truncate text-[#FCFCFC]">
+                {l
+                  .slice()
+                  .sort((a, b) => b.sl - a.sl)
+                  .map((p) => `${p.name.split(' ')[0]} ${p.sl}`)
+                  .join(' · ')}
+              </span>
+              <span className={`${DISPLAY} text-lg font-extrabold tabular-nums text-[#00D8D8]`}>{l.reduce((a, p) => a + p.sl, 0)}</span>
+            </div>
+          ))}
+          {legalLineups.length === 0 && <p className="text-sm text-[#FF7A7A]">No legal lineup with the players marked here. Check Setup.</p>}
         </div>
       </Card>
 
@@ -1185,6 +1274,23 @@ export default function TocMatchDay() {
 
       <Card>
         <Eyebrow>Our players · who is here</Eyebrow>
+        <label className="mt-2 flex items-center gap-2 text-sm text-[#9FBDBD]">
+          <span className="flex-1">Must play first in {info.label}</span>
+          <select
+            value={firstUpId ?? ''}
+            onChange={(e) => commit({ ...state, firstUp: { ...state.firstUp, [state.active]: e.target.value || null } })}
+            className="min-h-10 rounded-lg border border-[#17393A] bg-[#04090A] px-2 text-sm font-bold text-[#FCFCFC]"
+          >
+            <option value="">Nobody</option>
+            {ours
+              .filter((p) => state.present[p.id])
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+          </select>
+        </label>
         <div className="mt-2 grid gap-2">
           {ours.map((p) => (
             <div key={p.id} className="flex items-center gap-2">

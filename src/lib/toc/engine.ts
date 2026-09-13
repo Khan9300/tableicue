@@ -230,6 +230,8 @@ export interface Option {
   score: number;
   /** For our put-ups: their answer that hurts us most. */
   response?: Player | null;
+  /** Shown but not selectable this round (another player must go first). */
+  lockedOut?: boolean;
 }
 
 const byScore = (a: Option, b: Option) => {
