@@ -17,6 +17,7 @@ import {
   strategy,
   threat,
   type Mode,
+  type Outlook,
   type Option,
   type ThreatLevel,
 } from '@/lib/toc/engine';
@@ -514,21 +515,247 @@ export default function TocMatchDay() {
   const bestChanceId = (list: Option[]) =>
     list.filter((o) => o.legal && o.o).reduce<Option | null>((a, b) => (!a || (b.o?.pWin ?? 0) > (a.o?.pWin ?? 0) ? b : a), null)?.player.id;
 
+  /* ---- put-up counter and matchup drawers ---- */
+  const capSide = (side: Side, extra: Player | null = null) => {
+    const usedIds = [...(side === 'us' ? usedOurs : usedTheirs)];
+    if (extra && !usedIds.includes(extra.id)) usedIds.push(extra.id);
+    const roster = side === 'us' ? ours.filter((p) => state.present[p.id] || usedIds.includes(p.id)) : theirs;
+    const up = usedIds.map((id) => byId(id)).filter((p): p is Player => !!p);
+    const usedSl = up.reduce((a, p) => a + p.sl, 0);
+    const left = CAP - usedSl;
+    const k = Math.max(0, ROUNDS - up.length);
+    const remaining = roster.filter((p) => !usedIds.includes(p.id));
+    const fits = remaining.filter(
+      (p) => k > 0 && p.sl <= left && canComplete(remaining.filter((x) => x.id !== p.id), k - 1, left - p.sl),
+    );
+    const out = remaining.filter((p) => !fits.some((f) => f.id === p.id));
+    return { up, usedSl, left, k, fits, out };
+  };
+
+  const answersFor = (c: Player) => {
+    const k = ROUNDS - roundIndex;
+    return theirAvail
+      .filter((r) => r.sl <= theirBudget && canComplete(theirAvail.filter((x) => x.id !== r.id), k - 1, theirBudget - r.sl))
+      .map((r) => ({ r, o: outlook(c, r) }))
+      .sort((a, b) => a.o.swing - b.o.swing);
+  };
+
+  const winTone = (p: number) => (p < 0.4 ? 'text-[#FF7A7A]' : p < 0.55 ? 'text-[#FCC048]' : 'text-[#00D8D8]');
+
+  const nameChip = (p: Player, tone: 'up' | 'fit' | 'out') => (
+    <span
+      key={p.id}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
+        tone === 'up'
+          ? 'bg-[#0F2021] text-[#FCFCFC] ring-1 ring-[#17393A]'
+          : tone === 'fit'
+            ? 'bg-[#062B2C] text-[#00D8D8]'
+            : 'bg-[#3A1414] text-[#FF7A7A] line-through'
+      }`}
+    >
+      {p.name.split(' ')[0]} {p.sl}
+    </span>
+  );
+
+  const capCounter = () => (
+    <div className="grid grid-cols-2 gap-2">
+      {([
+        ['us', OUR_TEAM.short],
+        ['them', oppTeam.short],
+      ] as [Side, string][]).map(([side, label]) => {
+        const c = capSide(side);
+        return (
+          <div key={side} className={`rounded-2xl border p-3 ${side === 'us' ? 'border-[#0E4E50] bg-[#051819]' : 'border-[#17393A] bg-[#0A1516]'}`}>
+            <p className={`${DISPLAY} text-xs font-bold uppercase tracking-widest ${side === 'us' ? 'text-[#00D8D8]' : 'text-[#6E9696]'}`}>{label} put-ups</p>
+            <p className={`${DISPLAY} mt-0.5 text-4xl font-extrabold leading-none tabular-nums text-[#FCFCFC]`}>
+              {c.usedSl}
+              <span className="text-lg text-[#6E9696]">/23</span>
+            </p>
+            <p className="mt-1 text-xs tabular-nums text-[#9FBDBD]">
+              {c.left} left · {c.k} to play{c.k > 0 ? ` · avg ${(c.left / c.k).toFixed(1)}` : ''}
+            </p>
+            {c.up.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{c.up.map((p) => nameChip(p, 'up'))}</div>}
+            {c.k > 0 && (
+              <>
+                <p className="mt-2 text-[10px] uppercase tracking-wider text-[#6E9696]">Can still play</p>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {c.fits.length ? c.fits.map((p) => nameChip(p, 'fit')) : <span className="text-xs text-[#FF7A7A]">nobody fits</span>}
+                </div>
+                {c.out.length > 0 && (
+                  <>
+                    <p className="mt-2 text-[10px] uppercase tracking-wider text-[#6E9696]">Can&apos;t fit</p>
+                    <div className="mt-1 flex flex-wrap gap-1">{c.out.map((p) => nameChip(p, 'out'))}</div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const statBlock = (p: Player, isOurs: boolean) => {
+    const c = combined(p);
+    const summer =
+      p.wins != null && p.losses != null && p.wins + p.losses > 0 ? `${p.wins}-${p.losses} (${pct(p.wins / (p.wins + p.losses))})` : 'no record';
+    return (
+      <div className="min-w-0 rounded-xl bg-[#04090A] p-2.5">
+        <div className="flex items-center gap-2">
+          <SL n={p.sl} tone={isOurs ? 'turq' : 'dark'} />
+          <p className="min-w-0 truncate text-sm font-semibold text-[#FCFCFC]">{p.name}</p>
+        </div>
+        {!isOurs && (
+          <div className="mt-1.5">
+            <ThreatBadge level={threat(p)} />
+          </div>
+        )}
+        <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-xs">
+          <dt className="text-[#6E9696]">Summer</dt>
+          <dd className="text-right tabular-nums text-[#FCFCFC]">{summer}</dd>
+          {c && (p.otherTeams?.length ?? 0) > 0 && (
+            <>
+              <dt className="text-[#6E9696]">All 8-ball</dt>
+              <dd className="text-right tabular-nums text-[#FCFCFC]">
+                {c.w}-{c.l}
+              </dd>
+            </>
+          )}
+          {p.recent && (
+            <>
+              <dt className="text-[#6E9696]">Last 4 wks</dt>
+              <dd className="text-right tabular-nums text-[#FCFCFC]">
+                {p.recent.w}-{p.recent.l}
+              </dd>
+            </>
+          )}
+          {p.form && (
+            <>
+              <dt className="text-[#6E9696]">Today</dt>
+              <dd className="text-right">{p.form === 'hot' ? '🔥' : '❄️'}</dd>
+            </>
+          )}
+        </dl>
+        {p.scout && <p className="mt-2 text-[11px] leading-snug text-[#9FBDBD]">{p.scout}</p>}
+      </div>
+    );
+  };
+
+  const outcomeGrid = (o: Outlook) => (
+    <div className="grid grid-cols-3 gap-1 text-center text-[11px] tabular-nums">
+      {([
+        ['Win 3-0', o.win30, true],
+        ['Win 2-0', o.win20, true],
+        ['Win 2-1', o.win21, true],
+        ['Lose 1-2', o.lose12, false],
+        ['Lose 0-2', o.lose02, false],
+        ['Lose 0-3', o.lose03, false],
+      ] as [string, number, boolean][]).map(([label, v, win]) => (
+        <div key={label} className={`rounded-lg px-1 py-1.5 ${win ? 'bg-[#062B2C] text-[#00D8D8]' : 'bg-[#1C0B0B] text-[#FF9A9A]'}`}>
+          <p className={`${DISPLAY} text-base font-extrabold`}>{pct(v)}</p>
+          <p className="text-[10px] opacity-80">{label}</p>
+        </div>
+      ))}
+    </div>
+  );
+
+  const drawer = (o: Option, vs: Player | null) => {
+    const c = o.player;
+    const after = capSide('us', c);
+    const answers = vs ? [] : answersFor(c);
+    return (
+      <div className="border-t border-[#17393A] px-3 pb-3 pt-3">
+        {vs && o.o ? (
+          <>
+            <Eyebrow>Matchup</Eyebrow>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {statBlock(c, true)}
+              {statBlock(vs, false)}
+            </div>
+            <p className="mt-2 text-center text-sm text-[#9FBDBD]">
+              Race {o.o.race[0]}-{o.o.race[1]} · <span className={`font-semibold ${winTone(o.o.pWin)}`}>{pct(o.o.pWin)} to win</span>
+            </p>
+            <div className="mt-2">{outcomeGrid(o.o)}</div>
+          </>
+        ) : (
+          <>
+            <Eyebrow>If we put up {c.name.split(' ')[0]} · every answer they have</Eyebrow>
+            <p className="mt-1 text-xs text-[#6E9696]">Toughest for us first. Tap any player for both stat lines.</p>
+            <div className="mt-2 grid gap-1.5">
+              {answers.map(({ r, o: ro }, idx) => (
+                <details key={r.id} className="rounded-xl bg-[#04090A]">
+                  <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-2">
+                    <SL n={r.sl} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-[#FCFCFC]">
+                        {r.name}
+                        {idx < 3 && <span className="ml-1.5 text-[10px] font-bold uppercase text-[#FCC048]">likely</span>}
+                      </span>
+                      <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-[#6E9696]">
+                        {record(r)} <ThreatBadge level={threat(r)} />
+                      </span>
+                    </span>
+                    <span className="text-right">
+                      <span className={`${DISPLAY} block text-xl font-extrabold tabular-nums ${winTone(ro.pWin)}`}>{pct(ro.pWin)}</span>
+                      <span className="block text-[10px] text-[#6E9696]">
+                        race {ro.race[0]}-{ro.race[1]}
+                      </span>
+                    </span>
+                  </summary>
+                  <div className="grid gap-2 px-2.5 pb-2.5">
+                    <div className="grid grid-cols-2 gap-2">
+                      {statBlock(c, true)}
+                      {statBlock(r, false)}
+                    </div>
+                    {outcomeGrid(ro)}
+                  </div>
+                </details>
+              ))}
+              {answers.length === 0 && <p className="text-sm text-[#6E9696]">No {oppShort} players on file.</p>}
+            </div>
+          </>
+        )}
+        <div className="mt-3 rounded-xl border border-[#0E4E50] bg-[#051819] p-2.5 text-xs">
+          <p className="text-[#FCFCFC]">
+            After {c.name.split(' ')[0]}:{' '}
+            <span className="tabular-nums">
+              {after.usedSl}/23 used · {after.left} left for {after.k}
+            </span>
+          </p>
+          {after.k > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {after.fits.map((p) => nameChip(p, 'fit'))}
+              {after.out.map((p) => nameChip(p, 'out'))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const toughest = (c: Player) =>
+    answersFor(c)
+      .slice(0, 3)
+      .map(({ r, o: ro }) => `${r.name.split(' ')[0]} ${pct(ro.pWin)}`)
+      .join(' · ');
+
   const reasonFor = (o: Option, list: Option[], vs: Player | null): string => {
     const p = o.player;
+    const first = p.name.split(' ')[0];
     if (o.lockedOut) return `${forcedName} plays round 1 by team call. Available from round 2.`;
-    if (forcedId && p.id === forcedId && o.o) {
-      return vs
-        ? `Plays round 1 by team call. ${pct(o.o.pWin)} to win against ${vs.name.split(' ')[0]}.`
-        : `Plays round 1 by team call.${o.response ? ` Their best answer is ${o.response.name} (${o.response.sl}).` : ''}`;
-    }
     if (!o.legal) return 'Would break the 23 cap for the rest of our lineup.';
-    if (!o.o) return 'No data on their roster yet. Ranked by our record only.';
-    if (vs?.avoid?.includes(p.id)) return `Avoid. ${vs.name} is ${record(vs)} and this is exactly their best spot.`;
     const isTop = list[0]?.player.id === p.id;
+    if (!vs) {
+      const t = toughest(p);
+      const lead = forcedId === p.id ? 'Plays round 1 by team call. ' : isTop ? 'Holds up best against every answer. ' : '';
+      return `${lead}Toughest answers: ${t || 'none on file'}.`;
+    }
+    if (!o.o) return 'No data on their roster yet. Ranked by our record only.';
+    if (forcedId === p.id) return `Plays round 1 by team call. ${pct(o.o.pWin)} to win against ${vs.name.split(' ')[0]}.`;
+    if (vs.avoid?.includes(p.id)) return `Avoid. ${vs.name} is ${record(vs)} and this is exactly their best spot.`;
     const bc = bestChanceId(list);
-    if (vs && p.sl <= 3 && vs.sl >= 6) {
-      return `Trap play: ${vs.name} must win ${o.o.race[1]}, ${p.name.split(' ')[0]} needs ${o.o.race[0]}. Spends their ${vs.sl} on our ${p.sl}${isTop ? ' and keeps our best for later.' : '.'}`;
+    if (p.sl <= 3 && vs.sl >= 6) {
+      return `Trap play: ${vs.name} must win ${o.o.race[1]}, ${first} needs ${o.o.race[0]}. Spends their ${vs.sl} on our ${p.sl}${isTop ? ' and keeps our best for later.' : '.'}`;
     }
     if (strat.mode === 'Chase' && isTop) return 'Chase mode: highest point swing right now. Nothing held back.';
     if (isTop && bc && bc !== p.id) {
@@ -536,7 +763,6 @@ export default function TocMatchDay() {
       return `Saves ${bcName} for a bigger spot later. Best result across the rest of the match.`;
     }
     if (isTop) return 'Best chance and best point swing, and our lineup stays legal.';
-    if (o.response) return `Their best answer is ${o.response.name} (${o.response.sl}).`;
     if (bc === p.id) return 'Highest win chance this round, but costs us later in the match.';
     return `Expected points ${signed(o.o.swing)} this round.`;
   };
@@ -549,11 +775,8 @@ export default function TocMatchDay() {
     const avoid = !!vs?.avoid?.includes(o.player.id);
     const selected = current?.ourId === o.player.id;
     return (
-      <button
-        onClick={() => choose('us', selected ? null : o.player.id)}
-        disabled={!o.legal}
-        aria-pressed={selected}
-        className={`w-full rounded-2xl border p-3 text-left transition active:scale-[0.99] disabled:opacity-40 ${
+      <div
+        className={`overflow-hidden rounded-2xl border transition ${
           selected
             ? 'border-[#FCC048] bg-[#1A1606] ring-2 ring-[#FCC048]'
             : top
@@ -561,42 +784,51 @@ export default function TocMatchDay() {
               : avoid
                 ? 'border-[#6B2626] bg-[#0F2021]'
                 : 'border-[#17393A] bg-[#0F2021]'
-        }`}
+        } ${!o.legal ? 'opacity-40' : ''}`}
       >
-        <div className="flex items-start gap-3">
-          <SL n={o.player.sl} tone={selected ? 'gold' : top ? 'turq' : 'dark'} />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="font-semibold text-[#FCFCFC]">{o.player.name}</span>
-              {top && <span className={`${DISPLAY} rounded-full bg-[#00D8D8] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[#04090A]`}>Recommended</span>}
-              {bc && <span className={`${DISPLAY} rounded-full bg-[#3A2D0E] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[#FCC048]`}>Best chance</span>}
-              {avoid && <span className={`${DISPLAY} rounded-full bg-[#3A1414] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[#FF7A7A]`}>Avoid</span>}
-              {o.player.form === 'hot' && <span aria-label="hot today">🔥</span>}
-              {o.player.form === 'cold' && <span aria-label="cold today">❄️</span>}
+        <button
+          onClick={() => choose('us', selected ? null : o.player.id)}
+          disabled={!o.legal}
+          aria-expanded={selected}
+          className="w-full p-3 text-left active:scale-[0.99]"
+        >
+          <div className="flex items-start gap-3">
+            <SL n={o.player.sl} tone={selected ? 'gold' : top ? 'turq' : 'dark'} />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="font-semibold text-[#FCFCFC]">{o.player.name}</span>
+                {top && <span className={`${DISPLAY} rounded-full bg-[#00D8D8] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[#04090A]`}>Recommended</span>}
+                {bc && <span className={`${DISPLAY} rounded-full bg-[#3A2D0E] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[#FCC048]`}>Best chance</span>}
+                {avoid && <span className={`${DISPLAY} rounded-full bg-[#3A1414] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[#FF7A7A]`}>Avoid</span>}
+                {o.player.form === 'hot' && <span aria-label="hot today">🔥</span>}
+                {o.player.form === 'cold' && <span aria-label="cold today">❄️</span>}
+              </div>
+              <p className={`mt-0.5 text-sm leading-snug ${top ? 'text-[#BFF3F3]' : 'text-[#9FBDBD]'}`}>{reasonFor(o, list, vs)}</p>
             </div>
-            <p className={`mt-0.5 text-sm leading-snug ${top ? 'text-[#BFF3F3]' : 'text-[#9FBDBD]'}`}>{reasonFor(o, list, vs)}</p>
+            {o.legal && o.o && (
+              <div className="text-right">
+                <div className={`${DISPLAY} text-3xl font-extrabold leading-none tabular-nums text-[#FCFCFC]`}>{pct(o.o.pWin)}</div>
+                <div className="mt-1 text-[11px] text-[#6E9696]">
+                  race {o.o.race[0]}-{o.o.race[1]}
+                  {!vs && o.response ? ` vs ${o.response.name.split(' ')[0]}` : ''}
+                </div>
+              </div>
+            )}
           </div>
           {o.legal && o.o && (
-            <div className="text-right">
-              <div className={`${DISPLAY} text-3xl font-extrabold leading-none tabular-nums text-[#FCFCFC]`}>{pct(o.o.pWin)}</div>
-              <div className="mt-1 text-[11px] text-[#6E9696]">
-                race {o.o.race[0]}-{o.o.race[1]}
+            <div className="mt-2.5 grid gap-1.5">
+              <WinBar p={o.o.pWin} />
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] tabular-nums text-[#6E9696]">
+                <span>3-0 win {pct(o.o.win30)}</span>
+                <span>2-1 loss {pct(o.o.lose12)}</span>
+                <span className="text-[#9FBDBD]">points {signed(o.o.swing)}</span>
+                <span className="ml-auto font-semibold text-[#FCC048]">{selected ? 'Hide ▴' : 'Matchups ▾'}</span>
               </div>
             </div>
           )}
-        </div>
-        {o.legal && o.o && (
-          <div className="mt-2.5 grid gap-1.5">
-            <WinBar p={o.o.pWin} />
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] tabular-nums text-[#6E9696]">
-              <span>3-0 win {pct(o.o.win30)}</span>
-              <span>2-1 loss {pct(o.o.lose12)}</span>
-              <span className="text-[#9FBDBD]">points {signed(o.o.swing)}</span>
-              {o.response && <span>if they answer {o.response.name.split(' ')[0]}</span>}
-            </div>
-          </div>
-        )}
-      </button>
+        </button>
+        {selected && o.legal && drawer(o, vs)}
+      </div>
     );
   };
 
@@ -681,6 +913,12 @@ export default function TocMatchDay() {
         <Card className="border-[#0E4E50]">
           <Eyebrow>Step 1 · Coin toss</Eyebrow>
           <h2 className={`${DISPLAY} mt-1 text-3xl font-extrabold uppercase text-[#FCFCFC]`}>Who won the toss?</h2>
+          <p className="mt-2 rounded-xl border border-[#6B5418] bg-[#1A1606] px-3 py-2 text-sm text-[#FCC048]">
+            <span className="font-semibold">If we win: make {oppShort} put up first.</span>{' '}
+            {firstUpId
+              ? `${byId(firstUpId)?.name.split(' ')[0]} still plays round 1 but stays hidden, they only counter in rounds 2 and 4, and we get the last counter-pick in round 5.`
+              : 'We counter in rounds 1, 3 and 5, including the last pick of the match.'}
+          </p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             {(['us', 'them'] as Side[]).map((s) => (
               <button
@@ -750,6 +988,8 @@ export default function TocMatchDay() {
           {strat.detail && <p className="mt-1.5 text-sm text-[#9FBDBD]">{strat.detail}</p>}
         </div>
       )}
+
+      {m.firstDeclarer && capCounter()}
 
       {m.firstDeclarer && !matchOver && roundIndex < ROUNDS && (
         <Card>
@@ -1045,27 +1285,7 @@ export default function TocMatchDay() {
         </div>
       </Card>
 
-      <Card>
-        <Eyebrow>23 cap</Eyebrow>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {([
-            [OUR_TEAM.short, ourBudget, ourAvail, ROUNDS - m.rounds.length],
-            [oppTeam.short, theirBudget, theirAvail, ROUNDS - m.rounds.length],
-          ] as [string, number, Player[], number][]).map(([label, budget, pool, k]) => {
-            const out = pool.filter((p) => !(p.sl <= budget && canComplete(pool.filter((x) => x.id !== p.id), k - 1, budget - p.sl)));
-            return (
-              <div key={label} className="rounded-xl bg-[#0F2021] p-3">
-                <p className={`${DISPLAY} text-sm font-bold uppercase text-[#6E9696]`}>{label}</p>
-                <p className={`${DISPLAY} text-3xl font-extrabold tabular-nums text-[#FCFCFC]`}>
-                  {budget}
-                  <span className="text-base text-[#6E9696]"> for {Math.max(0, k)}</span>
-                </p>
-                <p className="mt-1 text-xs text-[#9FBDBD]">{out.length ? `Ruled out: ${out.map((p) => `${p.name.split(' ')[0]} (${p.sl})`).join(', ')}` : 'Nobody ruled out yet'}</p>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
+      {capCounter()}
 
       <Card>
         <Eyebrow>{oppShort} still to play</Eyebrow>
