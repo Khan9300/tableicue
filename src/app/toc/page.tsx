@@ -8,14 +8,18 @@ import {
   CAP,
   ROUNDS,
   canComplete,
+  canFit,
   combined,
   counterOptions,
+  fromOf,
   future,
   matchPoints,
+  orderings,
   outlook,
   putUpOptions,
   strategy,
   threat,
+  uniqueSets,
   type Mode,
   type Outlook,
   type Option,
@@ -35,6 +39,11 @@ interface Round {
   locked: boolean;
   racks: [number, number];
   winner: Side | null;
+  /** Side that forfeited this round (no legal player). No SL is used by either side. */
+  forfeit?: Side;
+  /** Set at lock-in and at the result, for pace-of-play projections. */
+  startedAt?: number;
+  endedAt?: number;
 }
 
 interface MatchState {
@@ -45,7 +54,7 @@ interface MatchState {
 }
 
 interface AppState {
-  v: 3;
+  v: 4;
   active: MatchId;
   tab: Tab;
   matches: Record<MatchId, MatchState>;
@@ -57,6 +66,10 @@ interface AppState {
   viewTeam: string | null;
   /** Player who must play round 1 of each match (team call). */
   firstUp: Record<MatchId, string | null>;
+  /** Per match: our player id → 0-based index of the first round they can play. Missing means round 1. */
+  availableFrom: Record<MatchId, Record<string, number>>;
+  /** Team points a forfeited round hands the other side. Confirm with the director. */
+  forfeitPoints: 2 | 3;
 }
 
 interface LiveRow {
@@ -66,11 +79,12 @@ interface LiveRow {
   played: number;
 }
 
-const STORAGE_KEY = 'ticue-toc-2026-09-13-v3';
+const STORAGE_KEY = 'ticue-toc-2026-09-13-v4';
 const HERE_TODAY = ['jason', 'felix', 'fahad', 'tristen', 'mircea', 'umber'];
+const FALLBACK_ROUND_MS = 40 * 60 * 1000;
 const freshMatch = (opponent: string): MatchState => ({ opponent, tossWinner: null, firstDeclarer: null, rounds: [] });
 const DEFAULT_STATE: AppState = {
-  v: 3,
+  v: 4,
   active: 'm10',
   tab: 'match',
   matches: { m10: freshMatch('roc'), m21: freshMatch('wolfpack') },
@@ -81,12 +95,17 @@ const DEFAULT_STATE: AppState = {
   customTeams: [],
   viewTeam: null,
   firstUp: { m10: 'mircea', m21: null },
+  availableFrom: { m10: { tristen: 4 }, m21: {} },
+  forfeitPoints: 3,
 };
 
 const other = (s: Side): Side => (s === 'us' ? 'them' : 'us');
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const signed = (x: number) => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(1)}`;
 const DISPLAY = 'font-[family-name:var(--font-display)]';
+const fmtTime = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const firstName = (p: Player) => p.name.split(' ')[0];
+const names = (list: Player[]) => list.map(firstName).join(' / ');
 
 /* ============================== small UI pieces ============================== */
 
@@ -202,7 +221,16 @@ export default function TocMatchDay() {
   const [addW, setAddW] = useState('');
   const [addL, setAddL] = useState('');
   const [newTeam, setNewTeam] = useState('');
+  /** Wall clock for time projections; 0 until mounted so the server and first client render agree. */
+  const [now, setNow] = useState(0);
   const history = useRef<AppState[]>([]);
+
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   /* ---- persistence (this browser) ---- */
   useEffect(() => {
@@ -210,7 +238,7 @@ export default function TocMatchDay() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as AppState;
-        if (parsed?.v === 3 && parsed.matches?.m10 && parsed.matches?.m21) setState({ ...DEFAULT_STATE, ...parsed });
+        if (parsed?.v === 4 && parsed.matches?.m10 && parsed.matches?.m21) setState({ ...DEFAULT_STATE, ...parsed });
       }
     } catch {
       /* storage blocked: start fresh */
@@ -308,7 +336,8 @@ export default function TocMatchDay() {
     const lr = team.dbName ? live.rows[`${team.dbName}|${p.alias ?? p.name}`] : undefined;
     const liveRecord = lr && lr.played > 0 ? { wins: lr.w, losses: lr.l } : {};
     const liveSl = lr && lr.sl > 0 ? lr.sl : p.sl;
-    return { ...p, ...liveRecord, sl: state.sl[p.id] ?? liveSl, form: state.form[p.id] };
+    const availableFrom = team.key === 'tic' ? state.availableFrom?.[state.active]?.[p.id] ?? 0 : 0;
+    return { ...p, ...liveRecord, sl: state.sl[p.id] ?? liveSl, form: state.form[p.id], availableFrom };
   };
   const playersOf = (key: string): Player[] => {
     const t = teamByKey(key);
@@ -325,6 +354,8 @@ export default function TocMatchDay() {
 
   /* ---- match state ---- */
   const roundPts = (r: Round): [number, number] => {
+    if (r.forfeit === 'us') return [0, state.forfeitPoints];
+    if (r.forfeit === 'them') return [state.forfeitPoints, 0];
     if (!r.winner) return [0, 0];
     const o = byId(r.ourId);
     const t = byId(r.theirId);
@@ -343,8 +374,9 @@ export default function TocMatchDay() {
   const declarerFor = (i: number): Side | null => (m.firstDeclarer ? (i % 2 === 0 ? m.firstDeclarer : other(m.firstDeclarer)) : null);
   const declarer = declarerFor(roundIndex);
 
-  const usedOurs = m.rounds.map((r) => r.ourId).filter((x): x is string => !!x);
-  const usedTheirs = m.rounds.map((r) => r.theirId).filter((x): x is string => !!x);
+  const played = m.rounds.filter((r) => !r.forfeit);
+  const usedOurs = played.map((r) => r.ourId).filter((x): x is string => !!x);
+  const usedTheirs = played.map((r) => r.theirId).filter((x): x is string => !!x);
   const slOf = (id: string) => byId(id)?.sl ?? 0;
   const ourBudget = CAP - usedOurs.reduce((a, id) => a + slOf(id), 0);
   const theirBudget = CAP - usedTheirs.reduce((a, id) => a + slOf(id), 0);
@@ -364,12 +396,30 @@ export default function TocMatchDay() {
   const forcedId = roundIndex === 0 && firstUpId && ourPoolNow.some((p) => p.id === firstUpId) ? firstUpId : null;
   const forcedName = forcedId ? byId(forcedId)?.name.split(' ')[0] ?? '' : '';
 
-  const calcKey = JSON.stringify([state.active, m, state.present, state.sl, state.form, state.added, state.firstUp, live.updated, live.status]);
+  /* ---- late arrivals ---- */
+  const isLate = (p: Player) => fromOf(p) > roundIndex;
+  const latePlayers = ours
+    .filter((p) => state.present[p.id] && !usedOurs.includes(p.id) && fromOf(p) > 0 && fromOf(p) >= roundIndex)
+    .sort((a, b) => fromOf(a) - fromOf(b));
+
+  const calcKey = JSON.stringify([
+    state.active,
+    m,
+    state.present,
+    state.sl,
+    state.form,
+    state.added,
+    state.firstUp,
+    state.availableFrom,
+    state.forfeitPoints,
+    live.updated,
+    live.status,
+  ]);
 
   const counters = useMemo<Option[]>(
     () =>
       declarer === 'them' && theirPick && !locked
-        ? counterOptions(ourPoolNow, theirAvail, theirPick, roundsAfter, ourBudgetNow, theirBudget, strat.weight)
+        ? counterOptions(ourPoolNow, theirAvail, theirPick, roundsAfter, ourBudgetNow, theirBudget, strat.weight, roundIndex)
         : [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [calcKey],
@@ -377,7 +427,7 @@ export default function TocMatchDay() {
   const putUps = useMemo<Option[]>(
     () =>
       declarer === 'us' && !locked && m.rounds.length < ROUNDS + (current ? 1 : 0)
-        ? putUpOptions(ourPoolNow, theirPoolNow, roundsAfter, ourBudgetNow, theirBudgetNow, strat.weight)
+        ? putUpOptions(ourPoolNow, theirPoolNow, roundsAfter, ourBudgetNow, theirBudgetNow, strat.weight, roundIndex)
         : [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [calcKey],
@@ -397,33 +447,35 @@ export default function TocMatchDay() {
     forcedId && list.some((o) => o.player.id === forcedId)
       ? [
           ...list.filter((o) => o.player.id === forcedId),
-          ...list.filter((o) => o.player.id !== forcedId).map((o) => ({ ...o, legal: false, lockedOut: true })),
+          ...list.filter((o) => o.player.id !== forcedId).map((o) => ({ ...o, legal: false, lockedOut: true, forfeits: 0 })),
         ]
       : list;
   const shownCounters = lockOthers(counters);
   const shownPutUps = lockOthers(putUps);
 
-  const legalLineups = (() => {
-    const pool = ours.filter((p) => state.present[p.id] || usedOurs.includes(p.id));
-    const must = [...usedOurs, ...(firstUpId && pool.some((p) => p.id === firstUpId) ? [firstUpId] : [])];
-    const out: Player[][] = [];
-    const pick = (start: number, cur: Player[]) => {
-      if (cur.length === 5) {
-        if (cur.reduce((a, p) => a + p.sl, 0) <= CAP && must.every((id) => cur.some((p) => p.id === id))) out.push(cur.slice());
-        return;
-      }
-      for (let i = start; i < pool.length; i++) {
-        cur.push(pool[i]);
-        pick(i + 1, cur);
-        cur.pop();
-      }
-    };
-    pick(0, []);
-    return out;
-  })();
-  const mustPlay = legalLineups.length
-    ? ours.filter((p) => !usedOurs.includes(p.id) && legalLineups.every((l) => l.some((x) => x.id === p.id)))
-    : [];
+  /* ---- legal lineups: rounds we still have to fill, ordered so every late arrival lands in a round they can make ---- */
+  const consumed = new Set(m.rounds.map((r, i) => (r.ourId || r.forfeit ? i : -1)).filter((i) => i >= 0));
+  const openRounds = Array.from({ length: ROUNDS }, (_, i) => i).filter((i) => !consumed.has(i));
+  const lastOpen = openRounds.length ? openRounds[openRounds.length - 1] : -1;
+  const lineupPool = ours.filter((p) => state.present[p.id] && !usedOurs.includes(p.id));
+  const forcedRounds: Record<number, string> =
+    firstUpId && openRounds.includes(0) && lineupPool.some((p) => p.id === firstUpId) ? { 0: firstUpId } : {};
+  const usedPlayers = usedOurs.map((id) => byId(id)).filter((p): p is Player => !!p);
+  const fullOrders = orderings(lineupPool, openRounds, ourBudget, forcedRounds);
+  const fallbackRounds = openRounds.slice(0, -1);
+  const fallbackOrders = openRounds.length > 0 ? orderings(lineupPool, fallbackRounds, ourBudget, forcedRounds) : [];
+  /** Every legal way to play all remaining rounds (used players included). */
+  const legalLineups = uniqueSets(fullOrders).map((set) => [...usedPlayers, ...set]);
+  /** Play one fewer and forfeit the last open round. */
+  const fallbackLineups = uniqueSets(fallbackOrders).map((set) => [...usedPlayers, ...set]);
+  const mustPlay = legalLineups.length ? lineupPool.filter((p) => legalLineups.every((l) => l.some((x) => x.id === p.id))) : [];
+  const lineupSl = (l: Player[]) => l.reduce((a, p) => a + p.sl, 0);
+  const lineupText = (l: Player[]) =>
+    l
+      .slice()
+      .sort((a, b) => b.sl - a.sl)
+      .map((p) => `${firstName(p)} ${p.sl}`)
+      .join(' · ');
 
   /* ---- actions ---- */
   const choose = (side: Side, id: string | null) =>
@@ -447,9 +499,39 @@ export default function TocMatchDay() {
       const rounds = [...mm.rounds];
       const lr = rounds[rounds.length - 1];
       if (!lr || lr.winner || !lr.ourId) return mm;
-      rounds[rounds.length - 1] = { ...lr, locked: value };
+      rounds[rounds.length - 1] = { ...lr, locked: value, startedAt: value ? lr.startedAt ?? Date.now() : lr.startedAt };
       return { ...mm, rounds };
     });
+
+  /** No legal player on `side`: the round is lost by forfeit, no SL is used, and the declarer order moves on. */
+  const forfeitRound = (side: Side) => {
+    const who = side === 'us' ? 'We' : oppShort;
+    const gets = side === 'us' ? oppShort : 'Table I-Cue';
+    if (typeof window !== 'undefined' && !window.confirm(`${who} forfeit round ${roundIndex + 1}? ${gets} gets ${state.forfeitPoints} points. Undo can bring it back.`)) return;
+    updateMatch((mm) => {
+      const rounds = [...mm.rounds];
+      const lr = rounds[rounds.length - 1];
+      const open = lr && !lr.winner ? lr : null;
+      const i = open ? rounds.length - 1 : rounds.length;
+      if (i >= ROUNDS) return mm;
+      const dec: Side = open ? open.declarer : mm.firstDeclarer ? (i % 2 === 0 ? mm.firstDeclarer : other(mm.firstDeclarer)) : 'them';
+      const stamp = Date.now();
+      const f: Round = {
+        declarer: dec,
+        ourId: null,
+        theirId: null,
+        locked: true,
+        racks: [0, 0],
+        winner: other(side),
+        forfeit: side,
+        startedAt: open?.startedAt ?? stamp,
+        endedAt: stamp,
+      };
+      if (open) rounds[i] = f;
+      else rounds.push(f);
+      return { ...mm, rounds };
+    });
+  };
 
   const addRack = (side: Side, delta: 1 | -1) =>
     updateMatch((mm) => {
@@ -464,7 +546,8 @@ export default function TocMatchDay() {
       const racks: [number, number] = [lr.racks[0], lr.racks[1]];
       racks[idx] = Math.max(0, Math.min(target[idx], racks[idx] + delta));
       const winner: Side | null = racks[0] >= target[0] ? 'us' : racks[1] >= target[1] ? 'them' : null;
-      rounds[rounds.length - 1] = { ...lr, racks, winner, locked: true };
+      const endedAt = winner ? (lr.winner ? lr.endedAt : Date.now()) : undefined;
+      rounds[rounds.length - 1] = { ...lr, racks, winner, locked: true, startedAt: lr.startedAt ?? Date.now(), endedAt };
       return { ...mm, rounds };
     });
 
@@ -472,11 +555,11 @@ export default function TocMatchDay() {
     updateMatch((mm) => {
       const rounds = [...mm.rounds];
       const lr = rounds[rounds.length - 1];
-      if (!lr) return mm;
+      if (!lr || lr.forfeit) return mm;
       const o = byId(lr.ourId);
       const t = byId(lr.theirId);
       const target = o && t ? race(o.sl, t.sl) : [9, 9];
-      rounds[rounds.length - 1] = { ...lr, winner: null, racks: [Math.min(lr.racks[0], target[0] - 1), Math.min(lr.racks[1], target[1] - 1)] };
+      rounds[rounds.length - 1] = { ...lr, winner: null, endedAt: undefined, racks: [Math.min(lr.racks[0], target[0] - 1), Math.min(lr.racks[1], target[1] - 1)] };
       return { ...mm, rounds };
     });
 
@@ -523,16 +606,19 @@ export default function TocMatchDay() {
   /* ---- put-up counter and matchup drawers ---- */
   const capSide = (side: Side, extra: Player | null = null) => {
     const usedIds = [...(side === 'us' ? usedOurs : usedTheirs)];
-    if (extra && !usedIds.includes(extra.id)) usedIds.push(extra.id);
+    const taken = new Set(m.rounds.map((r, i) => ((side === 'us' ? r.ourId : r.theirId) || r.forfeit ? i : -1)).filter((i) => i >= 0));
+    if (extra && !usedIds.includes(extra.id)) {
+      usedIds.push(extra.id);
+      taken.add(roundIndex);
+    }
+    const open = Array.from({ length: ROUNDS }, (_, i) => i).filter((i) => !taken.has(i));
     const roster = side === 'us' ? ours.filter((p) => state.present[p.id] || usedIds.includes(p.id)) : theirs;
     const up = usedIds.map((id) => byId(id)).filter((p): p is Player => !!p);
     const usedSl = up.reduce((a, p) => a + p.sl, 0);
     const left = CAP - usedSl;
-    const k = Math.max(0, ROUNDS - up.length);
+    const k = open.length;
     const remaining = roster.filter((p) => !usedIds.includes(p.id));
-    const fits = remaining.filter(
-      (p) => k > 0 && p.sl <= left && canComplete(remaining.filter((x) => x.id !== p.id), k - 1, left - p.sl),
-    );
+    const fits = remaining.filter((p) => canFit(p, remaining.filter((x) => x.id !== p.id), k, left, side === 'us' ? open : undefined));
     const out = remaining.filter((p) => !fits.some((f) => f.id === p.id));
     return { up, usedSl, left, k, fits, out };
   };
@@ -559,6 +645,7 @@ export default function TocMatchDay() {
       }`}
     >
       {p.name.split(' ')[0]} {p.sl}
+      {tone !== 'up' && isLate(p) && <span className="opacity-75">· from R{fromOf(p) + 1}</span>}
     </span>
   );
 
@@ -884,10 +971,106 @@ export default function TocMatchDay() {
   const counterFor = (p: Player, teamKey: string): Option[] => {
     const isCurrent = teamKey === m.opponent;
     if (isCurrent && !usedTheirs.includes(p.id)) {
-      return counterOptions(ourPoolNow, theirPoolNow.filter((x) => x.id !== p.id), p, roundsAfter, ourBudgetNow, theirBudgetNow - p.sl, strat.weight);
+      return counterOptions(ourPoolNow, theirPoolNow.filter((x) => x.id !== p.id), p, roundsAfter, ourBudgetNow, theirBudgetNow - p.sl, strat.weight, roundIndex);
     }
     const pool = ours.filter((x) => state.present[x.id]);
     return counterOptions(pool, playersOf(teamKey).filter((x) => x.id !== p.id), p, ROUNDS - 1, CAP, CAP - p.sl, 0.5);
+  };
+
+  /* ---- forfeits ---- */
+  const kNow = ROUNDS - roundIndex;
+  const theirLegalNow = theirAvail.filter(
+    (p) => p.sl <= theirBudgetNow && canComplete(theirPoolNow.filter((x) => x.id !== p.id), kNow - 1, theirBudgetNow - p.sl),
+  );
+  const forfeitButton = (side: Side, prominent: boolean) => (
+    <button
+      onClick={() => forfeitRound(side)}
+      className={
+        prominent
+          ? `${DISPLAY} mt-3 w-full rounded-xl bg-[#3A1414] py-3 text-base font-extrabold uppercase text-[#FF7A7A] ring-1 ring-[#6B2626]`
+          : 'mt-3 w-full rounded-lg border border-[#6B2626] py-2 text-xs font-semibold text-[#FF7A7A]'
+      }
+    >
+      {side === 'us' ? 'Forfeit this round (no legal player)' : `They forfeit${prominent ? ' (no legal player)' : ''}`}
+    </button>
+  );
+
+  /* ---- pace of play, for the late arrival's round ---- */
+  const durations = m.rounds
+    .filter((r) => r.winner && !r.forfeit && r.startedAt && r.endedAt && r.endedAt > r.startedAt)
+    .map((r) => (r.endedAt as number) - (r.startedAt as number));
+  const avgRoundMs = durations.length
+    ? Math.min(120 * 60_000, Math.max(5 * 60_000, durations.reduce((a, b) => a + b, 0) / durations.length))
+    : FALLBACK_ROUND_MS;
+  const scheduledMs = (() => {
+    const mt = /(\d+):(\d+)\s*(AM|PM)/i.exec(info.time);
+    if (!mt || !now) return 0;
+    const d = new Date(now);
+    d.setHours((Number(mt[1]) % 12) + (/pm/i.test(mt[3]) ? 12 : 0), Number(mt[2]), 0, 0);
+    return d.getTime();
+  })();
+  /** Projected start of round `idx` (0-based): the running round (or now) plus one average round per round in between. */
+  const roundStartEstimate = (idx: number): number | null => {
+    if (!now) return null;
+    const base = current?.locked && current.startedAt ? current.startedAt : Math.max(now, scheduledMs);
+    return base + avgRoundMs * Math.max(0, idx - roundIndex);
+  };
+
+  const TimingCard = () => {
+    const late = latePlayers[0];
+    if (!late) return null;
+    const lateRound = fromOf(late);
+    const forkRound = lateRound - 1;
+    const forkPos = openRounds.indexOf(forkRound);
+    const fbPos = fallbackRounds.indexOf(forkRound);
+    const distinct = (list: Player[]) => list.filter((p, i, a) => a.findIndex((x) => x.id === p.id) === i);
+    const forkA = forkPos >= 0 ? distinct(fullOrders.map((o) => o[forkPos])) : [];
+    const forkB = fbPos >= 0 ? distinct(fallbackOrders.map((o) => o[fbPos])).filter((p) => !forkA.some((a) => a.id === p.id)) : [];
+    const est = roundStartEstimate(lateRound);
+    const ways = (n: number) => `${n} way${n === 1 ? '' : 's'}`;
+    return (
+      <Card className="border-[#6B5418]">
+        <Eyebrow>Timing · {firstName(late)} arrives late</Eyebrow>
+        <p className={`${DISPLAY} mt-1 text-2xl font-extrabold uppercase leading-tight text-[#FCFCFC]`}>
+          {roundIndex >= lateRound ? `${firstName(late)} can play now (round ${lateRound + 1})` : `${firstName(late)} is needed for round ${lateRound + 1}`}
+        </p>
+        {late.scout && <p className="mt-1 text-xs text-[#9FBDBD]">{late.scout}</p>}
+        <div className="mt-3 grid gap-1.5 text-sm">
+          <p className={legalLineups.length ? 'text-[#00D8D8]' : 'text-[#FF7A7A]'}>
+            {legalLineups.length ? `Full five still legal · ${ways(legalLineups.length)}.` : 'No legal full five left.'}
+            {openRounds.length > 0 && (
+              <span className="text-[#9FBDBD]">
+                {' '}
+                {fallbackLineups.length ? ways(fallbackLineups.length) : 'No way'} to play {usedPlayers.length + fallbackRounds.length} and forfeit R{lastOpen + 1}.
+              </span>
+            )}
+          </p>
+          {roundIndex <= forkRound && forkPos >= 0 && (
+            <p className="text-[#FCFCFC]">
+              <span className="font-semibold text-[#FCC048]">
+                Round {forkRound + 1}
+                {roundIndex === forkRound ? ' (now)' : ''}:
+              </span>{' '}
+              {forkA.length ? `play ${names(forkA)} and keep ${firstName(late)} for R${lateRound + 1}` : 'no pick keeps the full five'}
+              {forkB.length ? `, or play ${names(forkB)} and forfeit R${lastOpen + 1}.` : '.'}
+            </p>
+          )}
+          <p className="text-[#9FBDBD]">
+            {est !== null && (
+              <>
+                <span className="font-semibold text-[#FCFCFC]">
+                  R{lateRound + 1} est. ~{fmtTime(est)}
+                </span>
+                {' · '}
+              </>
+            )}
+            {durations.length
+              ? `avg ${Math.round(avgRoundMs / 60_000)} min over ${durations.length} round${durations.length === 1 ? '' : 's'}`
+              : 'assuming 40 min per round'}
+          </p>
+        </div>
+      </Card>
+    );
   };
 
   /* ============================== tabs ============================== */
@@ -994,6 +1177,8 @@ export default function TocMatchDay() {
         </div>
       )}
 
+      {m.firstDeclarer && !matchOver && latePlayers.length > 0 && <TimingCard />}
+
       {m.firstDeclarer && capCounter()}
 
       {m.firstDeclarer && !matchOver && roundIndex < ROUNDS && (
@@ -1064,6 +1249,7 @@ export default function TocMatchDay() {
               <>
                 <h2 className={`${DISPLAY} mt-2 text-2xl font-extrabold uppercase text-[#FCFCFC]`}>Who did {oppShort} put up?</h2>
                 <TheirGrid vsOurs={null} />
+                {forfeitButton('them', theirLegalNow.length === 0)}
               </>
             ) : (
               <>
@@ -1087,6 +1273,7 @@ export default function TocMatchDay() {
                     <OptionCard key={o.player.id} o={o} i={i} list={list} vs={theirPick} />
                   ))}
                 </div>
+                {forfeitButton('us', !shownCounters.some((o) => o.legal))}
               </>
             )
           ) : !locked ? (
@@ -1098,6 +1285,7 @@ export default function TocMatchDay() {
                   <OptionCard key={o.player.id} o={o} i={i} list={list} vs={null} />
                 ))}
               </div>
+              {forfeitButton('us', !shownPutUps.some((o) => o.legal))}
             </>
           ) : (
             <>
@@ -1113,6 +1301,7 @@ export default function TocMatchDay() {
               </div>
               <h3 className={`${DISPLAY} mt-4 text-xl font-bold uppercase text-[#FCFCFC]`}>Who did they answer with?</h3>
               <TheirGrid vsOurs={ourPick} />
+              {forfeitButton('them', theirLegalNow.length === 0)}
             </>
           )}
         </Card>
@@ -1171,12 +1360,24 @@ export default function TocMatchDay() {
                 <li key={i} className="flex items-center gap-3 rounded-xl border border-[#17393A] bg-[#0F2021] px-3 py-2">
                   <span className={`${DISPLAY} w-5 text-lg font-extrabold tabular-nums text-[#6E9696]`}>{i + 1}</span>
                   <span className="min-w-0 flex-1 text-sm">
-                    <span className="text-[#FCFCFC]">{o ? `${o.name.split(' ')[0]} (${o.sl})` : '—'}</span>
-                    <span className="text-[#6E9696]"> vs </span>
-                    <span className="text-[#FCFCFC]">{t ? `${t.name.split(' ')[0]} (${t.sl})` : '—'}</span>
-                    <span className="block text-xs text-[#6E9696]">
-                      {r.declarer === 'us' ? 'we put up' : 'they put up'} · racks {r.racks[0]}-{r.racks[1]}
-                    </span>
+                    {r.forfeit ? (
+                      <>
+                        <span className={`${DISPLAY} font-extrabold uppercase tracking-wider text-[#FF7A7A]`}>Forfeit</span>
+                        <span className="text-[#FCFCFC]"> · {r.forfeit === 'us' ? 'we had no legal player' : `${oppShort} had no legal player`}</span>
+                        <span className="block text-xs text-[#6E9696]">
+                          {r.declarer === 'us' ? 'we put up' : 'they put up'} · no SL used · {state.forfeitPoints} points to {r.forfeit === 'us' ? oppShort : 'us'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-[#FCFCFC]">{o ? `${o.name.split(' ')[0]} (${o.sl})` : '—'}</span>
+                        <span className="text-[#6E9696]"> vs </span>
+                        <span className="text-[#FCFCFC]">{t ? `${t.name.split(' ')[0]} (${t.sl})` : '—'}</span>
+                        <span className="block text-xs text-[#6E9696]">
+                          {r.declarer === 'us' ? 'we put up' : 'they put up'} · racks {r.racks[0]}-{r.racks[1]}
+                        </span>
+                      </>
+                    )}
                   </span>
                   <span
                     className={`${DISPLAY} rounded-lg px-2 py-1 text-sm font-extrabold tabular-nums ${
@@ -1185,7 +1386,7 @@ export default function TocMatchDay() {
                   >
                     {r.winner ? `${pts[0]}-${pts[1]}` : 'LIVE'}
                   </span>
-                  {isLast && r.winner && (
+                  {isLast && r.winner && !r.forfeit && (
                     <button onClick={reopenLast} className="rounded-lg border border-[#17393A] px-2 py-1 text-xs text-[#9FBDBD]">
                       Reopen
                     </button>
@@ -1232,25 +1433,45 @@ export default function TocMatchDay() {
       <Card>
         <Eyebrow>Legal lineups for {info.label}</Eyebrow>
         <p className="mt-1 text-sm text-[#9FBDBD]">
-          {legalLineups.length} way{legalLineups.length === 1 ? '' : 's'} to field 5 under 23
-          {firstUpId ? ` with ${byId(firstUpId)?.name.split(' ')[0]} playing first` : ''}.
+          {legalLineups.length} way{legalLineups.length === 1 ? '' : 's'} to play every round under 23
+          {firstUpId && openRounds.includes(0) ? ` with ${byId(firstUpId)?.name.split(' ')[0]} playing first` : ''}
+          {latePlayers.length ? `, ${names(latePlayers)} only from R${fromOf(latePlayers[0]) + 1}` : ''}.
           {mustPlay.length ? ` Must play: ${mustPlay.map((p) => p.name.split(' ')[0]).join(', ')}.` : ''}
         </p>
-        <div className="mt-2 grid gap-1.5">
+        <p className={`${DISPLAY} mt-3 text-xs font-bold uppercase tracking-widest text-[#00D8D8]`}>
+          {openRounds.length === ROUNDS ? 'Full five' : `All ${openRounds.length} remaining rounds`}
+          {latePlayers.length ? ` (needs ${names(latePlayers)} by round ${fromOf(latePlayers[0]) + 1})` : ''}
+        </p>
+        <div className="mt-1.5 grid gap-1.5">
           {legalLineups.slice(0, 8).map((l, i) => (
             <div key={i} className="flex items-center justify-between gap-2 rounded-xl bg-[#0F2021] px-3 py-2 text-sm">
-              <span className="min-w-0 truncate text-[#FCFCFC]">
-                {l
-                  .slice()
-                  .sort((a, b) => b.sl - a.sl)
-                  .map((p) => `${p.name.split(' ')[0]} ${p.sl}`)
-                  .join(' · ')}
-              </span>
-              <span className={`${DISPLAY} text-lg font-extrabold tabular-nums text-[#00D8D8]`}>{l.reduce((a, p) => a + p.sl, 0)}</span>
+              <span className="min-w-0 truncate text-[#FCFCFC]">{lineupText(l)}</span>
+              <span className={`${DISPLAY} text-lg font-extrabold tabular-nums text-[#00D8D8]`}>{lineupSl(l)}</span>
             </div>
           ))}
-          {legalLineups.length === 0 && <p className="text-sm text-[#FF7A7A]">No legal lineup with the players marked here. Check Setup.</p>}
+          {legalLineups.length > 8 && <p className="text-xs text-[#6E9696]">+{legalLineups.length - 8} more</p>}
+          {legalLineups.length === 0 && <p className="text-sm text-[#FF7A7A]">No legal way to play every round with the players marked here. Check Setup.</p>}
         </div>
+        {openRounds.length > 0 && (
+          <>
+            <p className={`${DISPLAY} mt-4 text-xs font-bold uppercase tracking-widest text-[#FCC048]`}>
+              {openRounds.length === ROUNDS ? 'Four players' : `${usedPlayers.length + fallbackRounds.length} players`} + forfeit round {lastOpen + 1}
+            </p>
+            <p className="mt-0.5 text-xs text-[#9FBDBD]">
+              Hands {oppShort} {state.forfeitPoints} points for round {lastOpen + 1}. Only if nobody legal is here when it starts.
+            </p>
+            <div className="mt-1.5 grid gap-1.5">
+              {fallbackLineups.slice(0, 8).map((l, i) => (
+                <div key={i} className="flex items-center justify-between gap-2 rounded-xl bg-[#0F2021] px-3 py-2 text-sm">
+                  <span className="min-w-0 truncate text-[#FCFCFC]">{lineupText(l)}</span>
+                  <span className={`${DISPLAY} text-lg font-extrabold tabular-nums text-[#FCC048]`}>{lineupSl(l)}</span>
+                </div>
+              ))}
+              {fallbackLineups.length > 8 && <p className="text-xs text-[#6E9696]">+{fallbackLineups.length - 8} more</p>}
+              {fallbackLineups.length === 0 && <p className="text-sm text-[#FF7A7A]">No four-player lineup fits either.</p>}
+            </div>
+          </>
+        )}
       </Card>
 
       <Card>
@@ -1527,13 +1748,49 @@ export default function TocMatchDay() {
                 }`}
               >
                 <SL n={p.sl} tone={state.present[p.id] ? 'turq' : 'dark'} />
-                <span className="flex-1 font-semibold text-[#FCFCFC]">{p.name}</span>
-                <span className="text-xs text-[#6E9696]">{p.confirm ? 'confirm roster' : state.present[p.id] ? 'here' : 'not here'}</span>
+                <span className="min-w-0 flex-1 truncate font-semibold text-[#FCFCFC]">{p.name}</span>
+                <span className="shrink-0 text-xs text-[#6E9696]">
+                  {p.confirm ? 'confirm roster' : state.present[p.id] ? (fromOf(p) > 0 ? `from R${fromOf(p) + 1}` : 'here') : 'not here'}
+                </span>
               </button>
               <SlSelect value={p.sl} onChange={(v) => commit({ ...state, sl: { ...state.sl, [p.id]: v } })} label={`${p.name} skill level`} />
+              <select
+                aria-label={`${p.name} available from round`}
+                value={fromOf(p)}
+                onChange={(e) =>
+                  commit({
+                    ...state,
+                    availableFrom: {
+                      ...state.availableFrom,
+                      [state.active]: { ...(state.availableFrom?.[state.active] ?? {}), [p.id]: Number(e.target.value) },
+                    },
+                  })
+                }
+                className={`min-h-10 rounded-lg border bg-[#04090A] px-2 text-sm font-bold ${fromOf(p) > 0 ? 'border-[#FCC048] text-[#FCC048]' : 'border-[#17393A] text-[#FCFCFC]'}`}
+              >
+                {Array.from({ length: ROUNDS }, (_, i) => (
+                  <option key={i} value={i}>
+                    From R{i + 1}
+                  </option>
+                ))}
+              </select>
             </div>
           ))}
         </div>
+        <p className="mt-2 text-xs text-[#6E9696]">
+          &ldquo;From R5&rdquo; means the player is on the way and can only be put up from round 5. They still count toward the cap plan.
+        </p>
+        <label className="mt-3 flex items-center gap-2 text-sm text-[#9FBDBD]">
+          <span className="flex-1">Points a forfeit gives the other team (confirm with director)</span>
+          <select
+            value={state.forfeitPoints}
+            onChange={(e) => commit({ ...state, forfeitPoints: Number(e.target.value) === 2 ? 2 : 3 })}
+            className="min-h-10 rounded-lg border border-[#17393A] bg-[#04090A] px-2 text-sm font-bold text-[#FCFCFC]"
+          >
+            <option value={2}>2</option>
+            <option value={3}>3</option>
+          </select>
+        </label>
       </Card>
 
       <Card>
