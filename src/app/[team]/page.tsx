@@ -582,7 +582,7 @@ export default function MatchDay() {
              {lineups.sort((a,b) => b.reduce((s,x)=>s+x.sl,0) - a.reduce((s,x)=>s+x.sl,0)).map((l, i) => (
                <div key={i} className="flex gap-1 text-xs bg-rack-charcoal p-2 rounded">
                  <span className="text-rack-green font-bold w-6">{l.reduce((s,x)=>s+x.sl,0)}</span>
-                 {l.map(p => <span key={p.id} className="text-rack-white/80">{p.name.split(' ')[0]}</span>).join(', ')}
+                 {l.map((p, i) => <span key={p.id} className="text-rack-white/80">{i > 0 ? ', ' : ''}{p.name.split(' ')[0]}</span>)}
                </div>
              ))}
            </div>
