@@ -230,29 +230,17 @@ export default function MatchDay() {
 
   const strat = is8 ? strategy8(usPts, themPts, roundsLeft) : strategy9(usPts, themPts, roundsLeft);
 
-  const counters = useMemo<Option[]>(
-    () => {
-      if (declarer === 'them' && theirPick && !locked) {
-        return is8 
-          ? getCounterOptions8(ourPoolNow, theirAvail, theirPick, roundsAfter, ourBudgetNow, theirBudget, strat.weight, ourSeniorsUsed, theirSeniorsUsed)
-          : getCounterOptions9(ourPoolNow, theirAvail, theirPick, roundsAfter, ourBudgetNow, theirBudget, strat.weight, ourSeniorsUsed, theirSeniorsUsed);
-      }
-      return [];
-    },
-    [declarer, theirPick, locked, is8, ourPoolNow, theirAvail, roundsAfter, ourBudgetNow, theirBudget, strat.weight, ourSeniorsUsed, theirSeniorsUsed]
-  );
+  const counters: Option[] = (declarer === 'them' && theirPick && !locked)
+    ? (is8
+        ? getCounterOptions8(ourPoolNow, theirAvail, theirPick, roundsAfter, ourBudgetNow, theirBudget, strat.weight, ourSeniorsUsed, theirSeniorsUsed)
+        : getCounterOptions9(ourPoolNow, theirAvail, theirPick, roundsAfter, ourBudgetNow, theirBudget, strat.weight, ourSeniorsUsed, theirSeniorsUsed))
+    : [];
 
-  const putUps = useMemo<Option[]>(
-    () => {
-      if (declarer === 'us' && !locked && state.rounds.length <= ROUNDS) {
-        return is8
-          ? getPutUpOptions8(ourPoolNow, theirPoolNow, roundsAfter, ourBudgetNow, theirBudgetNow, strat.weight, ourSeniorsUsed, theirSeniorsUsed)
-          : getPutUpOptions9(ourPoolNow, theirPoolNow, roundsAfter, ourBudgetNow, theirBudgetNow, strat.weight, ourSeniorsUsed, theirSeniorsUsed);
-      }
-      return [];
-    },
-    [declarer, locked, state.rounds.length, is8, ourPoolNow, theirPoolNow, roundsAfter, ourBudgetNow, theirBudgetNow, strat.weight, ourSeniorsUsed, theirSeniorsUsed]
-  );
+  const putUps: Option[] = (declarer === 'us' && !locked && state.rounds.length <= ROUNDS)
+    ? (is8
+        ? getPutUpOptions8(ourPoolNow, theirPoolNow, roundsAfter, ourBudgetNow, theirBudgetNow, strat.weight, ourSeniorsUsed, theirSeniorsUsed)
+        : getPutUpOptions9(ourPoolNow, theirPoolNow, roundsAfter, ourBudgetNow, theirBudgetNow, strat.weight, ourSeniorsUsed, theirSeniorsUsed))
+    : [];
 
   // --- Actions ---
   const handleToss = (winner: Side) => commit({ ...state, tossWinner: winner });
