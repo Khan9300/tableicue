@@ -1,318 +1,99 @@
 'use client';
 
-import React, { useState } from 'react';
-import { TournamentState } from '../lib/tournament/engine';
-import { DirectorDashboard } from '../components/director/DirectorDashboard';
-import { BroadcastView } from '../components/tv/BroadcastView';
-import { useTableICueRealtime } from '../lib/supabase/useRealtime';
-import { SimiValleyRosterView } from '../components/directory/SimiValleyRosterView';
-import { TableScoreboardView } from '../components/score/TableScoreboardView';
-import { PlayerStatsView } from '../components/stats/PlayerStatsView';
-import { PlayerLoginModal } from '../components/auth/PlayerLoginModal';
-import { ShareModal } from '../components/ui/ShareModal';
+import Link from 'next/link';
+import { Trophy, Target, Zap } from 'lucide-react';
 
-// Mock initial tournament state for Lucky Cue Billiards (Moorpark, CA) — 6 Tables Setup
-const initialMockState: TournamentState = {
-  tournament: {
-    id: 'tourney-lucky-cue-01',
-    name: '🎱 Lucky Cue 8-Ball Scotch Doubles (Winner Stays)',
-    format: 'winner_stays_queue',
-    game_type: '8_ball',
-    max_skill_cap: 12,
-    starting_chips_policy: 'handicap_matrix',
-    venue_name: 'Lucky Cue Billiards (Moorpark, CA)',
-    status: 'in_progress',
-    auto_pilot: true,
-    table_count: 6,
-    created_at: new Date().toISOString(),
+const TEAMS = [
+  {
+    key: 'predators-8',
+    name: 'The Predators 8',
+    format: '8-Ball' as const,
+    night: 'Monday',
+    venue: 'Sunset Terrace',
+    icon: Trophy,
+    accent: 'from-amber-500/20 to-amber-600/5',
+    border: 'border-amber-500/30',
+    badge: 'bg-amber-500/20 text-amber-400',
   },
-  tables: [
-    { id: 'tbl-1', tournament_id: 'tourney-lucky-cue-01', table_number: 1, label: 'Table 1', status: 'in_use', active_match_id: 'm-101' },
-    { id: 'tbl-2', tournament_id: 'tourney-lucky-cue-01', table_number: 2, label: 'Table 2', status: 'in_use', active_match_id: 'm-102' },
-    { id: 'tbl-3', tournament_id: 'tourney-lucky-cue-01', table_number: 3, label: 'Table 3', status: 'in_use', active_match_id: 'm-103' },
-    { id: 'tbl-4', tournament_id: 'tourney-lucky-cue-01', table_number: 4, label: 'Table 4', status: 'open' },
-    { id: 'tbl-5', tournament_id: 'tourney-lucky-cue-01', table_number: 5, label: 'Table 5', status: 'open' },
-    { id: 'tbl-6', tournament_id: 'tourney-lucky-cue-01', table_number: 6, label: 'Table 6', status: 'open' },
-  ],
-  teams: [
-    {
-      id: 't-1',
-      tournament_id: 'tourney-lucky-cue-01',
-      team_name: 'Umber C & Fahad K',
-      player_1_name: 'Umber C',
-      player_2_name: 'Fahad K',
-      player_1_sl: 4,
-      player_2_sl: 6,
-      combined_sl: 10,
-      starting_chips: 3,
-      chips_remaining: 3,
-      status: 'active',
-      wins: 2,
-      losses: 0,
-    },
-    {
-      id: 't-2',
-      tournament_id: 'tourney-lucky-cue-01',
-      team_name: 'Mike Johnson & Carlos Rodriguez',
-      player_1_name: 'Mike Johnson',
-      player_2_name: 'Carlos Rodriguez',
-      player_1_sl: 4,
-      player_2_sl: 5,
-      combined_sl: 9,
-      starting_chips: 3,
-      chips_remaining: 3,
-      status: 'active',
-      wins: 1,
-      losses: 1,
-    },
-    {
-      id: 't-3',
-      tournament_id: 'tourney-lucky-cue-01',
-      team_name: 'Sarah Miller & Alex Wang',
-      player_1_name: 'Sarah Miller',
-      player_2_name: 'Alex Wang',
-      player_1_sl: 3,
-      player_2_sl: 6,
-      combined_sl: 9,
-      starting_chips: 3,
-      chips_remaining: 3,
-      status: 'active',
-      wins: 1,
-      losses: 0,
-    },
-    {
-      id: 't-4',
-      tournament_id: 'tourney-lucky-cue-01',
-      team_name: 'David Chen & Jessica Taylor',
-      player_1_name: 'David Chen',
-      player_2_name: 'Jessica Taylor',
-      player_1_sl: 5,
-      player_2_sl: 4,
-      combined_sl: 9,
-      starting_chips: 3,
-      chips_remaining: 2,
-      status: 'active',
-      wins: 0,
-      losses: 2,
-    },
-    {
-      id: 't-5',
-      tournament_id: 'tourney-lucky-cue-01',
-      team_name: 'Robert Gomez & Amanda White',
-      player_1_name: 'Robert Gomez',
-      player_2_name: 'Amanda White',
-      player_1_sl: 5,
-      player_2_sl: 2,
-      combined_sl: 7,
-      starting_chips: 4,
-      chips_remaining: 4,
-      status: 'active',
-      wins: 1,
-      losses: 0,
-    },
-    {
-      id: 't-6',
-      tournament_id: 'tourney-lucky-cue-01',
-      team_name: 'Raffy Mendoza & Reb Mendoza',
-      player_1_name: 'Raffy Mendoza',
-      player_2_name: 'Reb Mendoza',
-      player_1_sl: 4,
-      player_2_sl: 5,
-      combined_sl: 9,
-      starting_chips: 3,
-      chips_remaining: 2,
-      status: 'active',
-      wins: 0,
-      losses: 1,
-    },
-    {
-      id: 't-7',
-      tournament_id: 'tourney-lucky-cue-01',
-      team_name: 'Josh K & Alexis G',
-      player_1_name: 'Josh K',
-      player_2_name: 'Alexis G',
-      player_1_sl: 7,
-      player_2_sl: 5,
-      combined_sl: 12,
-      starting_chips: 1,
-      chips_remaining: 1,
-      status: 'active',
-      wins: 0,
-      losses: 0,
-    },
-  ],
-  matches: [
-    {
-      id: 'm-101',
-      tournament_id: 'tourney-lucky-cue-01',
-      table_id: 'tbl-1',
-      team_a_id: 't-1',
-      team_b_id: 't-2',
-      team_a_score: 0,
-      team_b_score: 0,
-      race_to: 1,
-      status: 'in_progress',
-      started_at: new Date().toISOString(),
-    },
-    {
-      id: 'm-102',
-      tournament_id: 'tourney-lucky-cue-01',
-      table_id: 'tbl-2',
-      team_a_id: 't-3',
-      team_b_id: 't-4',
-      team_a_score: 0,
-      team_b_score: 0,
-      race_to: 1,
-      status: 'in_progress',
-      started_at: new Date().toISOString(),
-    },
-    {
-      id: 'm-103',
-      tournament_id: 'tourney-lucky-cue-01',
-      table_id: 'tbl-3',
-      team_a_id: 't-5',
-      team_b_id: 't-6',
-      team_a_score: 0,
-      team_b_score: 0,
-      race_to: 1,
-      status: 'in_progress',
-      started_at: new Date().toISOString(),
-    },
-  ],
-  queue: [
-    {
-      id: 'q-101',
-      tournament_id: 'tourney-lucky-cue-01',
-      team_id: 't-7',
-      status: 'waiting',
-      entered_queue_at: new Date().toISOString(),
-    },
-  ],
-};
+  {
+    key: 'table-i-cue',
+    name: 'Table I-Cue',
+    format: '8-Ball' as const,
+    night: 'Tuesday',
+    venue: 'Arena Sports Grill',
+    icon: Target,
+    accent: 'from-blue-500/20 to-blue-600/5',
+    border: 'border-blue-500/30',
+    badge: 'bg-blue-500/20 text-blue-400',
+  },
+  {
+    key: 'ctrl-alt-defeat',
+    name: 'Ctrl Alt Defeat',
+    format: '9-Ball' as const,
+    night: 'Wednesday',
+    venue: 'Lucky Cue',
+    icon: Zap,
+    accent: 'from-emerald-500/20 to-emerald-600/5',
+    border: 'border-emerald-500/30',
+    badge: 'bg-emerald-500/20 text-emerald-400',
+  },
+];
 
-export default function TableICueApp() {
-  const [activeTab, setActiveTab] = useState<'director' | 'tv' | 'mobile_score' | 'roster' | 'stats'>('director');
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ name: string; role: 'player' | 'director' } | null>(null);
-
-  // Connect to Supabase Realtime Stream
-  const { state: liveState } = useTableICueRealtime('a0000000-0000-0000-0000-000000000001');
-  const currentState = liveState || initialMockState;
-
+export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#121212] text-white flex flex-col">
-      {/* Top Navigation Header */}
-      <nav className="bg-[#0e0e0e] border-b border-[#222] px-6 py-3 flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#12B5CB] to-[#F538A0] flex items-center justify-center font-bold text-black text-sm shadow-md">
-            🎱
-          </div>
-          <div>
-            <div className="font-black text-lg tracking-tight">
-              TABLE <span className="text-[#12B5CB]">i-CUE</span>
-            </div>
-            <div className="text-[10px] text-[#888] font-mono -mt-1">
-              LUCKY CUE BILLIARDS (MOORPARK, CA) • 6 TABLES
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      {/* Header */}
+      <div className="text-center mb-10">
+        <h1 className="font-display text-4xl font-bold text-rack-gold tracking-tight">
+          RackIQ
+        </h1>
+        <p className="text-rack-white/50 text-sm mt-1 font-body">
+          Outsmart the rack
+        </p>
+      </div>
 
-        {/* View Mode Selector & Tools */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex gap-1 bg-[#181818] p-1 rounded-xl border border-[#2a2a2a] overflow-x-auto">
-            <button
-              onClick={() => setActiveTab('director')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeTab === 'director'
-                  ? 'bg-[#12B5CB] text-black shadow-md'
-                  : 'text-[#A0A0A0] hover:text-white'
-              }`}
+      {/* Team cards */}
+      <div className="w-full max-w-md space-y-3">
+        {TEAMS.map((team) => {
+          const Icon = team.icon;
+          return (
+            <Link
+              key={team.key}
+              href={`/${team.key}`}
+              className={`block w-full rounded-xl border ${team.border} bg-gradient-to-r ${team.accent} backdrop-blur p-4 transition-all active:scale-[0.98] hover:border-opacity-60`}
             >
-              Director Control
-            </button>
-            <button
-              onClick={() => setActiveTab('tv')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeTab === 'tv'
-                  ? 'bg-[#12B5CB] text-black shadow-md'
-                  : 'text-[#A0A0A0] hover:text-white'
-              }`}
-            >
-              TV Broadcast (3-Col)
-            </button>
-            <button
-              onClick={() => setActiveTab('mobile_score')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeTab === 'mobile_score'
-                  ? 'bg-[#12B5CB] text-black shadow-md'
-                  : 'text-[#A0A0A0] hover:text-white'
-              }`}
-            >
-              Table Scoreboard (1–6)
-            </button>
-            <button
-              onClick={() => setActiveTab('stats')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeTab === 'stats'
-                  ? 'bg-[#12B5CB] text-black shadow-md'
-                  : 'text-[#A0A0A0] hover:text-white'
-              }`}
-            >
-              🏆 Hall of Fame & Stats
-            </button>
-            <button
-              onClick={() => setActiveTab('roster')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeTab === 'roster'
-                  ? 'bg-[#12B5CB] text-black shadow-md'
-                  : 'text-[#A0A0A0] hover:text-white'
-              }`}
-            >
-              APA League Roster
-            </button>
-          </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <Icon className="w-8 h-8 text-rack-gold/70" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-display text-lg font-semibold text-rack-white truncate">
+                      {team.name}
+                    </h2>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${team.badge}`}>
+                      {team.format}
+                    </span>
+                  </div>
+                  <p className="text-rack-white/40 text-sm">
+                    {team.night} · {team.venue}
+                  </p>
+                </div>
+                <div className="text-rack-white/20">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsLoginModalOpen(true)}
-              className="bg-[#181818] hover:bg-[#252525] border border-[#333] text-white px-3 py-1.5 rounded-xl text-xs font-bold font-mono flex items-center gap-1.5 transition-colors"
-            >
-              <span>👤</span> {currentUser ? currentUser.name : 'Sign In'}
-            </button>
-
-            <button
-              onClick={() => setIsShareModalOpen(true)}
-              className="bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] text-[#12B5CB] px-3 py-1.5 rounded-xl text-xs font-bold font-mono flex items-center gap-1.5 transition-colors"
-            >
-              <span>📺</span> Cast & QR
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main View Router */}
-      <main className="flex-1">
-        {activeTab === 'director' && <DirectorDashboard initialState={currentState} />}
-        {activeTab === 'tv' && <BroadcastView state={currentState} />}
-        {activeTab === 'stats' && <PlayerStatsView />}
-        {activeTab === 'roster' && <SimiValleyRosterView />}
-        {activeTab === 'mobile_score' && <TableScoreboardView state={currentState} />}
-      </main>
-
-      {/* Share / Cast Links Modal */}
-      <ShareModal
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        tablesCount={currentState.tables.length}
-      />
-
-      {/* Player Sign In / Director PIN Modal */}
-      <PlayerLoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onLoginSuccess={(user) => setCurrentUser(user)}
-      />
+      {/* Footer */}
+      <p className="text-rack-white/20 text-xs mt-8">
+        APA South Coast · Fall 2026
+      </p>
     </div>
   );
 }

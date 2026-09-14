@@ -1,19 +1,39 @@
-import type { Metadata } from 'next';
-import '../styles/globals.css';
+import type { Metadata, Viewport } from 'next';
+import { Saira_Condensed, Inter } from 'next/font/google';
+import '@/styles/globals.css';
+
+const saira = Saira_Condensed({
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  variable: '--font-saira',
+  display: 'swap',
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
-  title: 'Table i-Cue — Billiards Tournament & League Engine',
-  description: 'Real-time Scotch Doubles Chip Tournament Engine, TV Environmental Broadcast, and APA Sync.',
+  title: 'RackIQ — APA Captain Strategy',
+  description: 'Outsmart the rack. Lineup legality, matchup analytics, and live put-up strategy for APA pool captains.',
+  robots: 'noindex, nofollow',
+  icons: { icon: '/favicon.ico' },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#1A1A1A',
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-[#121212] text-white antialiased min-h-screen">
+    <html lang="en" className={`${saira.variable} ${inter.variable}`}>
+      <body className="font-body min-h-screen">
         {children}
       </body>
     </html>
