@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import type { Player, TeamConfig, Availability, ThreatLevel, Outlook, Option, Mode, Format, Pairing } from '@/lib/engine/types';
 import { rating, winProb, threat, canComplete, legalLineups as engineLegalLineups, combined, bestAssignment } from '@/lib/engine/core';
 import { outlook8, strategy8, matchPoints8, race, RACE, getCounterOptions8, getPutUpOptions8 } from '@/lib/engine/engine8';
@@ -722,6 +723,25 @@ export default function MatchDay() {
 
   return (
     <main className="min-h-screen bg-rack-charcoal-dark pb-20 font-body">
+      {/* Top Header */}
+      <header className="sticky top-0 z-30 bg-rack-surface/95 backdrop-blur border-b border-rack-charcoal-light px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/" className="text-rack-white/60 hover:text-rack-white text-sm font-semibold flex items-center gap-1">
+            ← Hub
+          </Link>
+          <span className="text-rack-charcoal-light">|</span>
+          <span className={`${DISPLAY} text-lg font-bold text-rack-gold tracking-wide`}>
+            {config.name}
+          </span>
+        </div>
+        <Link 
+          href="/fees" 
+          className="text-xs bg-rack-charcoal border border-rack-charcoal-light text-rack-gold px-2.5 py-1.5 rounded-lg hover:border-rack-gold transition-colors flex items-center gap-1 font-semibold"
+        >
+          💰 Fees
+        </Link>
+      </header>
+
       {tab === 'match' && renderMatchTab()}
       {tab === 'plan' && renderPlanTab()}
       {tab === 'players' && renderPlayersTab()}

@@ -90,18 +90,38 @@ export default function HomePage() {
         })}
       </div>
 
-      {/* Footer */}
-      <div className="flex flex-col items-center gap-2 mt-8">
+      {/* Quick Tools */}
+      <div className="w-full max-w-md mt-4">
         <Link 
           href="/fees" 
-          className="text-xs text-rack-gold/80 hover:text-rack-gold underline tracking-wide"
+          className="flex items-center justify-between w-full rounded-xl border border-rack-gold/30 bg-gradient-to-r from-rack-gold/10 to-transparent p-4 transition-all hover:border-rack-gold/60 active:scale-[0.98]"
         >
-          💰 Team Fee Tracker
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">💰</span>
+            <div>
+              <div className="font-display text-base font-bold text-rack-white flex items-center gap-2">
+                Team Fee Tracker
+                <span className="text-[10px] bg-rack-gold/20 text-rack-gold px-2 py-0.5 rounded-full font-bold uppercase">
+                  Cash · Venmo · Zelle
+                </span>
+              </div>
+              <p className="text-rack-white/40 text-xs">
+                Roll call, $10 match fees, payment logs & player balances
+              </p>
+            </div>
+          </div>
+          <div className="text-rack-gold/40">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
         </Link>
-        <p className="text-rack-white/20 text-xs">
-          APA South Coast · Fall 2026
-        </p>
       </div>
+
+      {/* Footer */}
+      <p className="text-rack-white/20 text-xs mt-8">
+        APA South Coast · Fall 2026
+      </p>
     </div>
   );
 }
