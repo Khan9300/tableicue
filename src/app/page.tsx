@@ -91,9 +91,17 @@ export default function HomePage() {
       </div>
 
       {/* Footer */}
-      <p className="text-rack-white/20 text-xs mt-8">
-        APA South Coast · Fall 2026
-      </p>
+      <div className="flex flex-col items-center gap-2 mt-8">
+        <Link 
+          href="/fees" 
+          className="text-xs text-rack-gold/80 hover:text-rack-gold underline tracking-wide"
+        >
+          💰 Team Fee Tracker
+        </Link>
+        <p className="text-rack-white/20 text-xs">
+          APA South Coast · Fall 2026
+        </p>
+      </div>
     </div>
   );
 }
