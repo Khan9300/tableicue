@@ -3,8 +3,16 @@ import { Player, Format } from '../engine/types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qpjannbvxpqqbvpclllq.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwamFubmJ2eHBxcWJ2cGNsbGxxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1NTAwODMsImV4cCI6MjEwMjEyNjA4M30.F0U4NmYvgoeSM3JvaSi_Ca-5V4KFB84MdugsDTYx5KU';
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+/**
+ * Server-only admin client for backend routes like cron jobs and stats refresh.
+ */
+export const supabaseAdmin = supabaseServiceRoleKey
+  ? createClient(supabaseUrl, supabaseServiceRoleKey)
+  : supabase;
 
 /**
  * Fetches the roster for a given team from simi_valley_players

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/data/supabase';
+import { supabaseAdmin } from '@/lib/data/supabase';
 import { ALL_TEAMS } from '@/lib/data/teams';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,7 @@ async function handleRefresh() {
     const results: Record<string, any> = {};
 
     for (const team of ALL_TEAMS) {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('simi_valley_players')
         .select('*')
         .eq('team_name', team.name);
