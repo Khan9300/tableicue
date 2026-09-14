@@ -15,11 +15,15 @@ export async function GET(request: Request) {
     const { data, error } = await supabaseAdmin
       .from('fee_teams')
       .select('id, team_code, team_name, team_number, format, night, captain_name, current_session, created_at')
-      .eq('team_code', code)
+      .ilike('team_code', code.trim())
       .single();
 
     if (error || !data) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 });
+      return NextResponse.json({ 
+        error: 'Team not found', 
+        details: error ? error.message : 'No matching row',
+        requestedCode: code 
+      }, { status: 404 });
     }
 
     return NextResponse.json(data);
