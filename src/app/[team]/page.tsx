@@ -108,6 +108,12 @@ export default function MatchDay() {
     eventType: 'regular',
   });
   
+  // Setup inputs
+  const [addName, setAddName] = useState('');
+  const [addSl, setAddSl] = useState(4);
+  const [addW, setAddW] = useState('');
+  const [addL, setAddL] = useState('');
+
   const history = useRef<AppState[]>([]);
   const storageKey = `rackiq-${teamKey}-${state.date}`;
 
@@ -334,11 +340,6 @@ export default function MatchDay() {
   };
 
   // --- Setup Actions ---
-  const [addName, setAddName] = useState('');
-  const [addSl, setAddSl] = useState(4);
-  const [addW, setAddW] = useState('');
-  const [addL, setAddL] = useState('');
-
   const addOpponentPlayer = () => {
     if (!addName.trim()) return;
     const p: Player = {
@@ -568,7 +569,7 @@ export default function MatchDay() {
         <section className="bg-rack-surface p-4 rounded-xl border border-rack-charcoal-light">
            <h3 className={`${DISPLAY} text-xl text-rack-gold mb-2`}>Legal Lineups ({lineups.length})</h3>
            <div className="max-h-48 overflow-y-auto space-y-2">
-             {lineups.sort((a,b) => b.reduce((s,x)=>s+x.sl,0) - a.reduce((s,x)=>s+x.sl,0)).map((l, i) => (
+             {[...lineups].sort((a,b) => b.reduce((s,x)=>s+x.sl,0) - a.reduce((s,x)=>s+x.sl,0)).map((l, i) => (
                <div key={i} className="flex gap-1 text-xs bg-rack-charcoal p-2 rounded">
                  <span className="text-rack-green font-bold w-6">{l.reduce((s,x)=>s+x.sl,0)}</span>
                  {l.map((p, i) => <span key={p.id} className="text-rack-white/80">{i > 0 ? ', ' : ''}{p.name.split(' ')[0]}</span>)}
@@ -579,28 +580,38 @@ export default function MatchDay() {
         
         <section className="bg-rack-surface p-4 rounded-xl border border-rack-charcoal-light">
            <h3 className={`${DISPLAY} text-xl text-rack-gold mb-2`}>Matchup Matrix</h3>
-           <div className="overflow-x-auto">
-             <table className="w-full text-xs text-center border-collapse">
-               <thead>
-                 <tr>
-                   <th className="p-1 border border-rack-charcoal-light text-left text-rack-white/60">Us \ Them</th>
-                   {theirs.map(t => <th key={t.id} className="p-1 border border-rack-charcoal-light text-rack-white">{t.name.split(' ')[0]} <br/><span className="text-rack-gold">{t.sl}</span></th>)}
-                 </tr>
-               </thead>
-               <tbody>
-                 {ours.map(o => (
-                   <tr key={o.id}>
-                     <th className="p-1 border border-rack-charcoal-light text-left text-rack-white whitespace-nowrap">{o.name.split(' ')[0]} <span className="text-rack-green">{o.sl}</span></th>
-                     {theirs.map(t => {
-                       const out = outlookFn(o, t);
-                       const color = out.pWin > 0.55 ? 'bg-rack-green/20 text-rack-green' : out.pWin < 0.45 ? 'bg-rack-red/20 text-rack-red' : 'bg-rack-charcoal text-rack-gold';
-                       return <td key={t.id} className={`p-1 border border-rack-charcoal-light font-bold ${color}`}>{pct(out.pWin)}</td>
-                     })}
+           {theirs.length === 0 ? (
+             <div className="text-center py-6 text-rack-white/50 text-sm">
+               No opponent players added yet. Add players in{' '}
+               <button onClick={() => setTab('setup')} className="text-rack-gold font-bold underline">
+                 Setup tab
+               </button>{' '}
+               to view win probabilities.
+             </div>
+           ) : (
+             <div className="overflow-x-auto">
+               <table className="w-full text-xs text-center border-collapse">
+                 <thead>
+                   <tr>
+                     <th className="p-1 border border-rack-charcoal-light text-left text-rack-white/60">Us \ Them</th>
+                     {theirs.map(t => <th key={t.id} className="p-1 border border-rack-charcoal-light text-rack-white">{t.name.split(' ')[0]} <br/><span className="text-rack-gold">{t.sl}</span></th>)}
                    </tr>
-                 ))}
-               </tbody>
-             </table>
-           </div>
+                 </thead>
+                 <tbody>
+                   {ours.map(o => (
+                     <tr key={o.id}>
+                       <th className="p-1 border border-rack-charcoal-light text-left text-rack-white whitespace-nowrap">{o.name.split(' ')[0]} <span className="text-rack-green">{o.sl}</span></th>
+                       {theirs.map(t => {
+                         const out = outlookFn(o, t);
+                         const color = out.pWin > 0.55 ? 'bg-rack-green/20 text-rack-green' : out.pWin < 0.45 ? 'bg-rack-red/20 text-rack-red' : 'bg-rack-charcoal text-rack-gold';
+                         return <td key={t.id} className={`p-1 border border-rack-charcoal-light font-bold ${color}`}>{pct(out.pWin)}</td>
+                       })}
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
+           )}
         </section>
       </div>
     );
@@ -614,7 +625,7 @@ export default function MatchDay() {
         <section>
           <h3 className={`${DISPLAY} text-xl text-rack-green mb-3`}>Our Team</h3>
           <div className="grid gap-3">
-            {ours.sort((a,b)=>b.sl-a.sl).map(p => {
+            {[...ours].sort((a,b)=>b.sl-a.sl).map(p => {
               const c = combined(p);
               return (
               <div key={p.id} className="bg-rack-surface p-3 rounded-xl border border-rack-charcoal-light flex items-center justify-between">
@@ -636,22 +647,31 @@ export default function MatchDay() {
 
         <section>
           <h3 className={`${DISPLAY} text-xl text-rack-gold mb-3`}>Their Team</h3>
-          <div className="grid gap-3">
-            {theirs.sort((a,b)=>threat(b).localeCompare(threat(a))).map(p => {
-              const c = combined(p);
-              return (
-              <div key={p.id} className="bg-rack-surface p-3 rounded-xl border border-rack-charcoal-light flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <SL n={p.sl} tone="dark" />
-                  <div>
-                    <div className="text-rack-white font-bold">{p.name}</div>
-                    <div className="text-xs text-rack-white/60">{c ? `${c.w}-${c.l}` : 'No record'} · Rating: {(rating(p)*100).toFixed(0)}</div>
+          {theirs.length === 0 ? (
+            <div className="text-center py-6 text-rack-white/50 text-sm bg-rack-surface rounded-xl border border-rack-charcoal-light">
+              No opponent players added yet.{' '}
+              <button onClick={() => setTab('setup')} className="text-rack-gold font-bold underline">
+                Add them in Setup
+              </button>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {[...theirs].sort((a,b)=>threat(b).localeCompare(threat(a))).map(p => {
+                const c = combined(p);
+                return (
+                <div key={p.id} className="bg-rack-surface p-3 rounded-xl border border-rack-charcoal-light flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <SL n={p.sl} tone="dark" />
+                    <div>
+                      <div className="text-rack-white font-bold">{p.name}</div>
+                      <div className="text-xs text-rack-white/60">{c ? `${c.w}-${c.l}` : 'No record'} · Rating: {(rating(p)*100).toFixed(0)}</div>
+                    </div>
                   </div>
+                  <ThreatBadge level={threat(p)} />
                 </div>
-                <ThreatBadge level={threat(p)} />
-              </div>
-            )})}
-          </div>
+              )})}
+            </div>
+          )}
         </section>
       </div>
     );
