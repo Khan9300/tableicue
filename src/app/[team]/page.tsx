@@ -8,6 +8,7 @@ import { rating, winProb, threat, canComplete, legalLineups as engineLegalLineup
 import { outlook8, strategy8, matchPoints8, race, RACE, getCounterOptions8, getPutUpOptions8 } from '@/lib/engine/engine8';
 import { outlook9, strategy9, matchPoints9, POINT_TARGETS, getCounterOptions9, getPutUpOptions9 } from '@/lib/engine/engine9';
 import { TEAMS, getTeamConfig } from '@/lib/data/teams';
+import { getDivisionOpponents, OpponentTeam } from '@/lib/data/division-opponents';
 
 type Side = 'us' | 'them';
 type Tab = 'match' | 'plan' | 'players' | 'setup';
@@ -92,6 +93,8 @@ export default function MatchDay() {
   const teamKey = params?.team as string;
   const config = getTeamConfig(teamKey);
 
+  const divisionOpponents = useMemo(() => getDivisionOpponents(teamKey), [teamKey]);
+
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState<Tab>('match');
   const [state, setState] = useState<AppState>({
@@ -121,23 +124,34 @@ export default function MatchDay() {
   useEffect(() => {
     if (!config) return;
     try {
+      const defaultOpponent = divisionOpponents.find(t => t.isThisWeek) || divisionOpponents[0];
       const raw = localStorage.getItem(storageKey);
       if (raw) {
         const parsed = JSON.parse(raw) as AppState;
         if (parsed.version === 1) {
+          // If parsed opponentPlayers is empty or default, populate from scheduled opponent
+          if ((!parsed.opponentPlayers || parsed.opponentPlayers.length === 0) && defaultOpponent) {
+            parsed.opponentName = defaultOpponent.name;
+            parsed.opponentPlayers = defaultOpponent.players;
+          }
           setState(parsed);
         }
       } else {
-        // Initialize availability
+        // Initialize availability and scheduled opponent
         const initialAvail: Record<string, Availability> = {};
         config.players.forEach(p => {
           initialAvail[p.id] = { present: true };
         });
-        setState(s => ({ ...s, availability: initialAvail }));
+        setState(s => ({ 
+          ...s, 
+          availability: initialAvail,
+          opponentName: defaultOpponent ? defaultOpponent.name : 'Opponent',
+          opponentPlayers: defaultOpponent ? defaultOpponent.players : []
+        }));
       }
     } catch {}
     setLoaded(true);
-  }, [config, storageKey]);
+  }, [config, storageKey, divisionOpponents]);
 
   // Local Storage Save
   useEffect(() => {
@@ -683,18 +697,158 @@ export default function MatchDay() {
         <h2 className={`${DISPLAY} text-2xl text-rack-white font-bold`}>Setup</h2>
         
         <section className="bg-rack-surface p-4 rounded-xl border border-rack-charcoal-light space-y-4">
-          <h3 className={`${DISPLAY} text-xl text-rack-gold`}>Opponent Details</h3>
+          <div className="flex items-center justify-between">
+            <h3 className={`${DISPLAY} text-xl text-rack-gold`}>Opponent Details</h3>
+            {state.opponentPlayers.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const found = divisionOpponents.find(t => t.name.toLowerCase() === state.opponentName.toLowerCase());
+                  if (found) {
+                    commit({ ...state, opponentPlayers: found.players });
+                  }
+                }}
+                className="text-xs text-rack-gold hover:underline font-semibold"
+              >
+                Reset to Official Roster
+              </button>
+            )}
+          </div>
+
+          {/* Quick Select Opponent Team Dropdown */}
           <div>
-            <label className="text-xs text-rack-white/60 uppercase">Opponent Name</label>
-            <input type="text" value={state.opponentName} onChange={e => commit({...state, opponentName: e.target.value})} className="w-full bg-rack-charcoal text-rack-white p-3 rounded-lg mt-1 border border-rack-charcoal-light" />
+            <label className="text-xs text-rack-white/60 uppercase font-bold tracking-wider">
+              Select Division Opponent
+            </label>
+            <select
+              value={divisionOpponents.some(t => t.name.toLowerCase() === state.opponentName.toLowerCase()) ? state.opponentName : '__custom__'}
+              onChange={e => {
+                const val = e.target.value;
+                if (val === '__custom__') {
+                  commit({ ...state, opponentName: 'Custom Opponent' });
+                } else {
+                  const found = divisionOpponents.find(t => t.name === val);
+                  if (found) {
+                    commit({
+                      ...state,
+                      opponentName: found.name,
+                      opponentPlayers: found.players,
+                    });
+                  }
+                }
+              }}
+              className="w-full bg-rack-charcoal text-rack-white p-3 rounded-lg mt-1 border border-rack-charcoal-light font-medium text-sm focus:border-rack-gold outline-none"
+            >
+              <option value="__custom__">Manual / Custom Opponent</option>
+              {divisionOpponents.map(t => (
+                <option key={t.name} value={t.name}>
+                  {t.isThisWeek ? `⭐️ ${t.name} (This Week's Match)` : t.name} ({t.players.length} players)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-rack-white/60 uppercase font-bold tracking-wider">Opponent Name</label>
+            <input 
+              type="text" 
+              value={state.opponentName} 
+              onChange={e => commit({...state, opponentName: e.target.value})} 
+              className="w-full bg-rack-charcoal text-rack-white p-3 rounded-lg mt-1 border border-rack-charcoal-light text-sm" 
+            />
+          </div>
+
+          {/* Opponent Roster List with SL Stepper */}
+          <div className="border-t border-rack-charcoal-light pt-3">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-rack-white font-bold text-sm">
+                Active Opponent Roster ({state.opponentPlayers.length})
+              </h4>
+              <span className="text-[11px] text-rack-white/50">SL changes auto-save</span>
+            </div>
+
+            {state.opponentPlayers.length === 0 ? (
+              <p className="text-xs text-rack-white/50 italic py-2">
+                No opponent players loaded. Select a team above or add players below.
+              </p>
+            ) : (
+              <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                {state.opponentPlayers.map((p, idx) => {
+                  const c = combined(p);
+                  const currentSl = state.sl[p.id] ?? p.sl;
+                  return (
+                    <div 
+                      key={p.id || idx} 
+                      className="flex items-center justify-between bg-rack-charcoal px-3 py-2 rounded-lg border border-rack-charcoal-light/60 text-xs"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <SL n={currentSl} tone="dark" />
+                        <div className="truncate">
+                          <div className="text-rack-white font-semibold truncate">{p.name}</div>
+                          <div className="text-[10px] text-rack-white/50">
+                            {c ? `${c.w}-${c.l}` : 'No record'} · SL {currentSl}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {/* SL Stepper */}
+                        <div className="flex items-center bg-rack-charcoal-dark rounded border border-rack-charcoal-light">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (currentSl > (is8 ? 2 : 1)) {
+                                commit({ ...state, sl: { ...state.sl, [p.id]: currentSl - 1 } });
+                              }
+                            }}
+                            className="px-2 py-1 text-rack-white/60 hover:text-rack-white"
+                          >
+                            −
+                          </button>
+                          <span className="px-1.5 font-bold text-rack-gold">
+                            {currentSl}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (currentSl < (is8 ? 7 : 9)) {
+                                commit({ ...state, sl: { ...state.sl, [p.id]: currentSl + 1 } });
+                              }
+                            }}
+                            className="px-2 py-1 text-rack-white/60 hover:text-rack-white"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        {/* Remove Player */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            commit({
+                              ...state,
+                              opponentPlayers: state.opponentPlayers.filter((_, i) => i !== idx),
+                            });
+                          }}
+                          className="text-rack-red/70 hover:text-rack-red p-1 text-sm ml-1"
+                          title="Remove player"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
           
           <div className="border-t border-rack-charcoal-light pt-4 space-y-2">
-            <h4 className="text-rack-white font-bold text-sm">Add Opponent Player</h4>
+            <h4 className="text-rack-white font-bold text-sm">Add Substitute / Walk-in Player</h4>
             <input type="text" placeholder="Name" value={addName} onChange={e => setAddName(e.target.value)} className="w-full bg-rack-charcoal text-rack-white p-2 rounded border border-rack-charcoal-light text-sm" />
             <div className="flex gap-2">
               <select value={addSl} onChange={e => setAddSl(Number(e.target.value))} className="bg-rack-charcoal text-rack-white p-2 rounded border border-rack-charcoal-light text-sm w-1/3">
-                {[2,3,4,5,6,7,8,9].map(n => <option key={n} value={n}>SL {n}</option>)}
+                {[1,2,3,4,5,6,7,8,9].map(n => <option key={n} value={n}>SL {n}</option>)}
               </select>
               <input type="number" placeholder="Wins" value={addW} onChange={e => setAddW(e.target.value)} className="bg-rack-charcoal text-rack-white p-2 rounded border border-rack-charcoal-light text-sm w-1/3" />
               <input type="number" placeholder="Losses" value={addL} onChange={e => setAddL(e.target.value)} className="bg-rack-charcoal text-rack-white p-2 rounded border border-rack-charcoal-light text-sm w-1/3" />

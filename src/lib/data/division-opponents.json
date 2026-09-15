@@ -1,0 +1,2473 @@
+{
+  "predators-8": [
+    {
+      "name": "Wolfpack",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "jesse-ramirez",
+          "name": "Jesse Ramirez",
+          "sl": 7,
+          "wins": 1,
+          "losses": 3
+        },
+        {
+          "id": "joshua-dubois",
+          "name": "Joshua DuBois",
+          "sl": 6,
+          "wins": 12,
+          "losses": 7
+        },
+        {
+          "id": "alex-reyes",
+          "name": "Alex Reyes",
+          "sl": 5,
+          "wins": 6,
+          "losses": 5
+        },
+        {
+          "id": "jose-ortiz",
+          "name": "Jose Ortiz",
+          "sl": 5,
+          "wins": 6,
+          "losses": 1
+        },
+        {
+          "id": "lori-perry",
+          "name": "Lori Perry",
+          "sl": 5,
+          "wins": 4,
+          "losses": 5
+        },
+        {
+          "id": "michael-pierangeli",
+          "name": "Michael Pierangeli",
+          "sl": 4,
+          "wins": 5,
+          "losses": 3
+        },
+        {
+          "id": "william-lozano",
+          "name": "William Lozano",
+          "sl": 4,
+          "wins": 3,
+          "losses": 1
+        },
+        {
+          "id": "roland-hudgins",
+          "name": "Roland Hudgins",
+          "sl": 3,
+          "wins": null,
+          "losses": null
+        }
+      ]
+    },
+    {
+      "name": "Flavor Town",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "brandon-liakos",
+          "name": "Brandon Liakos",
+          "sl": 6,
+          "wins": 1,
+          "losses": 3
+        },
+        {
+          "id": "patrick-lasure",
+          "name": "Patrick Lasure",
+          "sl": 6,
+          "wins": 12,
+          "losses": 2
+        },
+        {
+          "id": "tanner-butera",
+          "name": "Tanner Butera",
+          "sl": 6,
+          "wins": 4,
+          "losses": 1
+        },
+        {
+          "id": "austin-herzig",
+          "name": "Austin Herzig",
+          "sl": 5,
+          "wins": 11,
+          "losses": 8
+        },
+        {
+          "id": "alex-gonzalez",
+          "name": "Alex Gonzalez",
+          "sl": 4,
+          "wins": 8,
+          "losses": 9
+        },
+        {
+          "id": "linden-lindsay",
+          "name": "Linden Lindsay",
+          "sl": 4,
+          "wins": 8,
+          "losses": 10
+        },
+        {
+          "id": "miranda-gargiulo",
+          "name": "Miranda Gargiulo",
+          "sl": 4,
+          "wins": 6,
+          "losses": 14
+        },
+        {
+          "id": "cameron-gargiulo",
+          "name": "Cameron Gargiulo",
+          "sl": 0,
+          "wins": null,
+          "losses": null
+        }
+      ]
+    },
+    {
+      "name": "8 On The Break",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "chuck-torres",
+          "name": "Chuck Torres",
+          "sl": 6,
+          "wins": 8,
+          "losses": 6
+        },
+        {
+          "id": "phil-king",
+          "name": "Phil King",
+          "sl": 6,
+          "wins": 6,
+          "losses": 2
+        },
+        {
+          "id": "zackary-mcvicker",
+          "name": "Zackary McVicker",
+          "sl": 5,
+          "wins": 4,
+          "losses": 4
+        },
+        {
+          "id": "andrew-day",
+          "name": "Andrew Day",
+          "sl": 4,
+          "wins": 7,
+          "losses": 2
+        },
+        {
+          "id": "daniel-gad",
+          "name": "Daniel Gad",
+          "sl": 4,
+          "wins": 6,
+          "losses": 4
+        },
+        {
+          "id": "matthew-mesropian",
+          "name": "Matthew Mesropian",
+          "sl": 4,
+          "wins": 2,
+          "losses": 5
+        },
+        {
+          "id": "andrew-alawami",
+          "name": "Andrew Alawami",
+          "sl": 3,
+          "wins": 5,
+          "losses": 5
+        }
+      ]
+    },
+    {
+      "name": "805 Ballers",
+      "isThisWeek": true,
+      "players": [
+        {
+          "id": "paul-delgado",
+          "name": "Paul Delgado",
+          "sl": 6,
+          "wins": 6,
+          "losses": 6
+        },
+        {
+          "id": "pedro-delgado",
+          "name": "Pedro Delgado",
+          "sl": 5,
+          "wins": 8,
+          "losses": 4
+        },
+        {
+          "id": "hernan-mora",
+          "name": "Hernan Mora",
+          "sl": 4,
+          "wins": 3,
+          "losses": 4
+        },
+        {
+          "id": "luis-martin",
+          "name": "Luis Martin",
+          "sl": 4,
+          "wins": 6,
+          "losses": 4
+        },
+        {
+          "id": "axcel-mora",
+          "name": "Axcel Mora",
+          "sl": 3,
+          "wins": 4,
+          "losses": 0
+        },
+        {
+          "id": "brandon-flynn",
+          "name": "Brandon Flynn",
+          "sl": 3,
+          "wins": 2,
+          "losses": 3
+        },
+        {
+          "id": "paul-nicholl",
+          "name": "Paul Nicholl",
+          "sl": 3,
+          "wins": 2,
+          "losses": 3
+        },
+        {
+          "id": "lynette-townes",
+          "name": "Lynette Townes",
+          "sl": 2,
+          "wins": 2,
+          "losses": 2
+        }
+      ]
+    },
+    {
+      "name": "Ctrl Alt Defeat",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "christopher-kennedy",
+          "name": "Christopher Kennedy",
+          "sl": 6,
+          "wins": 7,
+          "losses": 1
+        },
+        {
+          "id": "sheleph-christian",
+          "name": "Sheleph Christian",
+          "sl": 6,
+          "wins": 3,
+          "losses": 3
+        },
+        {
+          "id": "arpit-christian",
+          "name": "Arpit Christian",
+          "sl": 5,
+          "wins": 5,
+          "losses": 2
+        },
+        {
+          "id": "martin-molina",
+          "name": "Martin Molina",
+          "sl": 5,
+          "wins": 3,
+          "losses": 6
+        },
+        {
+          "id": "allen-sutton",
+          "name": "Allen Sutton",
+          "sl": 4,
+          "wins": 3,
+          "losses": 3
+        },
+        {
+          "id": "chris-soderlund",
+          "name": "Chris Soderlund",
+          "sl": 4,
+          "wins": 4,
+          "losses": 7
+        },
+        {
+          "id": "matthew-atkinson",
+          "name": "Matthew Atkinson",
+          "sl": 0,
+          "wins": null,
+          "losses": null
+        }
+      ]
+    },
+    {
+      "name": "Nice Putt",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "shantaram-parab",
+          "name": "Shantaram Parab",
+          "sl": 7,
+          "wins": 8,
+          "losses": 2
+        },
+        {
+          "id": "hitesh-patel",
+          "name": "Hitesh Patel",
+          "sl": 6,
+          "wins": 4,
+          "losses": 3
+        },
+        {
+          "id": "jay-wetherald",
+          "name": "Jay Wetherald",
+          "sl": 6,
+          "wins": 4,
+          "losses": 2
+        },
+        {
+          "id": "samuel-santillano",
+          "name": "Samuel Santillano",
+          "sl": 5,
+          "wins": 4,
+          "losses": 3
+        },
+        {
+          "id": "jon-sweeting",
+          "name": "Jon Sweeting",
+          "sl": 4,
+          "wins": 2,
+          "losses": 4
+        },
+        {
+          "id": "robert-sweeting",
+          "name": "Robert Sweeting",
+          "sl": 4,
+          "wins": 1,
+          "losses": 4
+        },
+        {
+          "id": "lisa-wetherald",
+          "name": "Lisa Wetherald",
+          "sl": 2,
+          "wins": 3,
+          "losses": 5
+        },
+        {
+          "id": "pratiksha-parab",
+          "name": "Pratiksha Parab",
+          "sl": 2,
+          "wins": 2,
+          "losses": 7
+        }
+      ]
+    },
+    {
+      "name": "Young Guns",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "alec-st-john",
+          "name": "Alec St John",
+          "sl": 7,
+          "wins": 3,
+          "losses": 2
+        },
+        {
+          "id": "ryan-lewis",
+          "name": "Ryan Lewis",
+          "sl": 6,
+          "wins": 5,
+          "losses": 4
+        },
+        {
+          "id": "angela-aslanyan",
+          "name": "Angela Aslanyan",
+          "sl": 5,
+          "wins": 5,
+          "losses": 6
+        },
+        {
+          "id": "jason-savage",
+          "name": "Jason Savage",
+          "sl": 5,
+          "wins": 4,
+          "losses": 6
+        },
+        {
+          "id": "kristofer-fowler",
+          "name": "Kristofer Fowler",
+          "sl": 4,
+          "wins": 4,
+          "losses": 5
+        },
+        {
+          "id": "camille-goncharow",
+          "name": "Camille Goncharow",
+          "sl": 3,
+          "wins": 0,
+          "losses": 0
+        },
+        {
+          "id": "elisa-loza",
+          "name": "Elisa Loza",
+          "sl": 3,
+          "wins": 6,
+          "losses": 2
+        },
+        {
+          "id": "kyle-silverheels",
+          "name": "Kyle Silverheels",
+          "sl": 2,
+          "wins": 4,
+          "losses": 3
+        }
+      ]
+    },
+    {
+      "name": "I Must Break Cue",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "duff-lin",
+          "name": "Duff Lin",
+          "sl": 7,
+          "wins": 9,
+          "losses": 7
+        },
+        {
+          "id": "ceyda-cehreli",
+          "name": "Ceyda Cehreli",
+          "sl": 5,
+          "wins": 6,
+          "losses": 11
+        },
+        {
+          "id": "jan-lebeau",
+          "name": "Jan LeBeau",
+          "sl": 5,
+          "wins": 12,
+          "losses": 8
+        },
+        {
+          "id": "joanne-bodenhamer",
+          "name": "Joanne Bodenhamer",
+          "sl": 5,
+          "wins": 7,
+          "losses": 12
+        },
+        {
+          "id": "scott-robinson",
+          "name": "Scott Robinson",
+          "sl": 5,
+          "wins": 10,
+          "losses": 8
+        },
+        {
+          "id": "sarah-lin",
+          "name": "Sarah Lin",
+          "sl": 4,
+          "wins": 3,
+          "losses": 5
+        },
+        {
+          "id": "evy-schultz",
+          "name": "Evy Schultz",
+          "sl": 3,
+          "wins": 5,
+          "losses": 5
+        },
+        {
+          "id": "kim-esseff",
+          "name": "Kim Esseff",
+          "sl": 2,
+          "wins": 4,
+          "losses": 2
+        }
+      ]
+    },
+    {
+      "name": "RU Ready 4 Some 8Ball",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "vern-rayta",
+          "name": "Vern Rayta",
+          "sl": 7,
+          "wins": 1,
+          "losses": 3
+        },
+        {
+          "id": "debby-day",
+          "name": "Debby Day",
+          "sl": 6,
+          "wins": 2,
+          "losses": 2
+        },
+        {
+          "id": "ted-rogoff",
+          "name": "Ted Rogoff",
+          "sl": 6,
+          "wins": 4,
+          "losses": 4
+        },
+        {
+          "id": "colin-white",
+          "name": "Colin White",
+          "sl": 5,
+          "wins": 4,
+          "losses": 5
+        },
+        {
+          "id": "andres-ramacho",
+          "name": "Andres Ramacho",
+          "sl": 4,
+          "wins": 2,
+          "losses": 4
+        },
+        {
+          "id": "stephen-lewis",
+          "name": "Stephen Lewis",
+          "sl": 4,
+          "wins": 3,
+          "losses": 5
+        },
+        {
+          "id": "joseph-gonzalez",
+          "name": "Joseph Gonzalez",
+          "sl": 3,
+          "wins": 6,
+          "losses": 4
+        },
+        {
+          "id": "seana-rayta",
+          "name": "Seana Rayta",
+          "sl": 3,
+          "wins": 6,
+          "losses": 10
+        }
+      ]
+    },
+    {
+      "name": "We've Got This",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "james-gouda",
+          "name": "James Gouda",
+          "sl": 6,
+          "wins": 2,
+          "losses": 2
+        },
+        {
+          "id": "jason-krepel",
+          "name": "Jason Krepel",
+          "sl": 6,
+          "wins": 13,
+          "losses": 6
+        },
+        {
+          "id": "kevin-long",
+          "name": "Kevin Long",
+          "sl": 6,
+          "wins": 2,
+          "losses": 3
+        },
+        {
+          "id": "billy-ramos",
+          "name": "Billy Ramos",
+          "sl": 5,
+          "wins": 15,
+          "losses": 9
+        },
+        {
+          "id": "erica-benvenuto",
+          "name": "Erica Benvenuto",
+          "sl": 4,
+          "wins": 9,
+          "losses": 8
+        },
+        {
+          "id": "gabriel-lee",
+          "name": "Gabriel Lee",
+          "sl": 4,
+          "wins": 2,
+          "losses": 4
+        },
+        {
+          "id": "dianne-guarino",
+          "name": "Dianne Guarino",
+          "sl": 3,
+          "wins": 5,
+          "losses": 3
+        }
+      ]
+    },
+    {
+      "name": "Lucky Sticks",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "reb-mendoza",
+          "name": "Reb Mendoza",
+          "sl": 5,
+          "wins": 3,
+          "losses": 8
+        },
+        {
+          "id": "richard-fleetwood",
+          "name": "Richard Fleetwood",
+          "sl": 5,
+          "wins": 7,
+          "losses": 3
+        },
+        {
+          "id": "raffy-mendoza",
+          "name": "Raffy Mendoza",
+          "sl": 4,
+          "wins": 4,
+          "losses": 4
+        },
+        {
+          "id": "vzya-toledo",
+          "name": "Vzya Toledo",
+          "sl": 4,
+          "wins": 3,
+          "losses": 8
+        },
+        {
+          "id": "katie-fleetwood",
+          "name": "Katie Fleetwood",
+          "sl": 2,
+          "wins": 1,
+          "losses": 2
+        },
+        {
+          "id": "matt-shulman",
+          "name": "Matt Shulman",
+          "sl": 0,
+          "wins": null,
+          "losses": null
+        }
+      ]
+    },
+    {
+      "name": "Oracle",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "felix-katz",
+          "name": "Felix Katz",
+          "sl": 6,
+          "wins": 12,
+          "losses": 6
+        },
+        {
+          "id": "charles-fewell",
+          "name": "Charles Fewell",
+          "sl": 5,
+          "wins": 9,
+          "losses": 12
+        },
+        {
+          "id": "andrew-katz",
+          "name": "Andrew Katz",
+          "sl": 4,
+          "wins": 2,
+          "losses": 6
+        },
+        {
+          "id": "john-dalmau",
+          "name": "John Dalmau",
+          "sl": 4,
+          "wins": 2,
+          "losses": 0
+        },
+        {
+          "id": "john-moreira",
+          "name": "John Moreira",
+          "sl": 4,
+          "wins": 10,
+          "losses": 10
+        },
+        {
+          "id": "nevin-pace",
+          "name": "Nevin Pace",
+          "sl": 4,
+          "wins": 1,
+          "losses": 4
+        },
+        {
+          "id": "victor-serrano",
+          "name": "Victor Serrano",
+          "sl": 4,
+          "wins": 1,
+          "losses": 6
+        },
+        {
+          "id": "anthony-gomez",
+          "name": "Anthony Gomez",
+          "sl": 2,
+          "wins": 3,
+          "losses": 4
+        }
+      ]
+    },
+    {
+      "name": "Old English",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "anthony-cota",
+          "name": "Anthony Cota",
+          "sl": 7,
+          "wins": 4,
+          "losses": 2
+        },
+        {
+          "id": "greg-stanton",
+          "name": "Greg Stanton",
+          "sl": 5,
+          "wins": 5,
+          "losses": 6
+        },
+        {
+          "id": "hiroshi-hirahara",
+          "name": "Hiroshi Hirahara",
+          "sl": 5,
+          "wins": 0,
+          "losses": 9
+        },
+        {
+          "id": "matthew-baker",
+          "name": "Matthew Baker",
+          "sl": 5,
+          "wins": 1,
+          "losses": 5
+        },
+        {
+          "id": "mike-morris",
+          "name": "Mike Morris",
+          "sl": 5,
+          "wins": 2,
+          "losses": 4
+        },
+        {
+          "id": "mare-debiase",
+          "name": "Mare DeBiase",
+          "sl": 3,
+          "wins": 4,
+          "losses": 4
+        },
+        {
+          "id": "alissa-ruef",
+          "name": "Alissa Ruef",
+          "sl": 2,
+          "wins": 2,
+          "losses": 4
+        },
+        {
+          "id": "april-turkalj",
+          "name": "April Turkalj",
+          "sl": 2,
+          "wins": 1,
+          "losses": 5
+        }
+      ]
+    },
+    {
+      "name": "Riding The Rails",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "dave-mendelson",
+          "name": "Dave Mendelson",
+          "sl": 6,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "jay-ross",
+          "name": "Jay Ross",
+          "sl": 5,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "scott-bal",
+          "name": "Scott Bal",
+          "sl": 5,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "terry-sherman",
+          "name": "Terry Sherman",
+          "sl": 4,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "timothy-storrie",
+          "name": "Timothy Storrie",
+          "sl": 4,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "david-schmerbauch",
+          "name": "David Schmerbauch",
+          "sl": 3,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "laura-bojarski",
+          "name": "Laura Bojarski",
+          "sl": 3,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "daniel-hernandez",
+          "name": "Daniel Hernandez",
+          "sl": 2,
+          "wins": null,
+          "losses": null
+        }
+      ]
+    }
+  ],
+  "table-i-cue": [
+    {
+      "name": "Degens",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "darren-o-loughlin",
+          "name": "Darren O'Loughlin",
+          "sl": 7,
+          "wins": 5,
+          "losses": 7
+        },
+        {
+          "id": "dan-natarelli",
+          "name": "Dan Natarelli",
+          "sl": 6,
+          "wins": 9,
+          "losses": 1
+        },
+        {
+          "id": "luis-lopez",
+          "name": "Luis Lopez",
+          "sl": 5,
+          "wins": 6,
+          "losses": 4
+        },
+        {
+          "id": "michael-westfall",
+          "name": "Michael Westfall",
+          "sl": 5,
+          "wins": 4,
+          "losses": 3
+        },
+        {
+          "id": "armando-cota-jr",
+          "name": "Armando Cota Jr",
+          "sl": 3,
+          "wins": 5,
+          "losses": 1
+        },
+        {
+          "id": "kylie-nelson",
+          "name": "Kylie Nelson",
+          "sl": 3,
+          "wins": 6,
+          "losses": 2
+        },
+        {
+          "id": "robert-glatt",
+          "name": "Robert Glatt",
+          "sl": 3,
+          "wins": 4,
+          "losses": 2
+        },
+        {
+          "id": "seana-rayta",
+          "name": "Seana Rayta",
+          "sl": 3,
+          "wins": 6,
+          "losses": 10
+        }
+      ]
+    },
+    {
+      "name": "Betsy's Whammy Crew",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "michael-hansen",
+          "name": "Michael Hansen",
+          "sl": 7,
+          "wins": 7,
+          "losses": 4
+        },
+        {
+          "id": "chuck-torres",
+          "name": "Chuck Torres",
+          "sl": 6,
+          "wins": 8,
+          "losses": 6
+        },
+        {
+          "id": "wendy-kamaluddin",
+          "name": "Wendy Kamaluddin",
+          "sl": 6,
+          "wins": 4,
+          "losses": 2
+        },
+        {
+          "id": "billy-ramos",
+          "name": "Billy Ramos",
+          "sl": 5,
+          "wins": 15,
+          "losses": 9
+        },
+        {
+          "id": "klarissia-hayter",
+          "name": "Klarissia Hayter",
+          "sl": 5,
+          "wins": 3,
+          "losses": 1
+        },
+        {
+          "id": "jennifer-perez",
+          "name": "Jennifer Perez",
+          "sl": 4,
+          "wins": 2,
+          "losses": 4
+        },
+        {
+          "id": "james-knoke",
+          "name": "James Knoke",
+          "sl": 3,
+          "wins": 7,
+          "losses": 3
+        },
+        {
+          "id": "millette-arredondo",
+          "name": "Millette Arredondo",
+          "sl": 3,
+          "wins": 4,
+          "losses": 4
+        }
+      ]
+    },
+    {
+      "name": "Golden Oldies",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "bill-phipps",
+          "name": "Bill Phipps",
+          "sl": 4,
+          "wins": 5,
+          "losses": 5
+        },
+        {
+          "id": "greg-moeller",
+          "name": "Greg Moeller",
+          "sl": 4,
+          "wins": 3,
+          "losses": 5
+        },
+        {
+          "id": "robert-lenart",
+          "name": "Robert Lenart",
+          "sl": 4,
+          "wins": 4,
+          "losses": 6
+        },
+        {
+          "id": "christophe-alessi",
+          "name": "Christophe Alessi",
+          "sl": 3,
+          "wins": 7,
+          "losses": 2
+        },
+        {
+          "id": "gary-deaton",
+          "name": "Gary Deaton",
+          "sl": 3,
+          "wins": 3,
+          "losses": 6
+        },
+        {
+          "id": "rigoberto-montemayor",
+          "name": "Rigoberto Montemayor",
+          "sl": 3,
+          "wins": 3,
+          "losses": 4
+        },
+        {
+          "id": "steve-nicoletti",
+          "name": "Steve Nicoletti",
+          "sl": 3,
+          "wins": 5,
+          "losses": 2
+        },
+        {
+          "id": "william-monk",
+          "name": "William Monk",
+          "sl": 2,
+          "wins": 1,
+          "losses": 3
+        }
+      ]
+    },
+    {
+      "name": "Ma Cue-Lit Squad",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "angelo-garcia",
+          "name": "Angelo Garcia",
+          "sl": 6,
+          "wins": 7,
+          "losses": 2
+        },
+        {
+          "id": "joshua-dubois",
+          "name": "Joshua DuBois",
+          "sl": 6,
+          "wins": 12,
+          "losses": 7
+        },
+        {
+          "id": "edwin-sugay",
+          "name": "Edwin Sugay",
+          "sl": 5,
+          "wins": 5,
+          "losses": 7
+        },
+        {
+          "id": "marco-gutierrez",
+          "name": "Marco Gutierrez",
+          "sl": 4,
+          "wins": 3,
+          "losses": 0
+        },
+        {
+          "id": "william-lozano",
+          "name": "William Lozano",
+          "sl": 4,
+          "wins": 3,
+          "losses": 1
+        },
+        {
+          "id": "aaron-hernandez-jr",
+          "name": "Aaron Hernandez Jr",
+          "sl": 3,
+          "wins": 7,
+          "losses": 4
+        },
+        {
+          "id": "marcx-diaz",
+          "name": "Marcx Diaz",
+          "sl": 3,
+          "wins": 5,
+          "losses": 6
+        }
+      ]
+    },
+    {
+      "name": "What Am I?",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "ruben-arvizo",
+          "name": "Ruben Arvizo",
+          "sl": 7,
+          "wins": 4,
+          "losses": 3
+        },
+        {
+          "id": "patrick-lasure",
+          "name": "Patrick Lasure",
+          "sl": 6,
+          "wins": 12,
+          "losses": 2
+        },
+        {
+          "id": "anthony-jaraski",
+          "name": "Anthony Jaraski",
+          "sl": 5,
+          "wins": 5,
+          "losses": 5
+        },
+        {
+          "id": "austin-herzig",
+          "name": "Austin Herzig",
+          "sl": 5,
+          "wins": 11,
+          "losses": 8
+        },
+        {
+          "id": "alex-gonzalez",
+          "name": "Alex Gonzalez",
+          "sl": 4,
+          "wins": 8,
+          "losses": 9
+        },
+        {
+          "id": "chris-collier",
+          "name": "Chris Collier",
+          "sl": 4,
+          "wins": 2,
+          "losses": 3
+        },
+        {
+          "id": "bobby-tofig",
+          "name": "Bobby Tofig",
+          "sl": 3,
+          "wins": 6,
+          "losses": 3
+        },
+        {
+          "id": "miguel-manzo",
+          "name": "Miguel Manzo",
+          "sl": 3,
+          "wins": 4,
+          "losses": 5
+        }
+      ]
+    },
+    {
+      "name": "South Coasters",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "joseph-le",
+          "name": "Joseph Le",
+          "sl": 7,
+          "wins": 3,
+          "losses": 3
+        },
+        {
+          "id": "jordan-rahhal",
+          "name": "Jordan Rahhal",
+          "sl": 6,
+          "wins": 2,
+          "losses": 8
+        },
+        {
+          "id": "jordan-le",
+          "name": "Jordan Le",
+          "sl": 5,
+          "wins": 5,
+          "losses": 3
+        },
+        {
+          "id": "juan-carlo-mallari",
+          "name": "Juan Carlo Mallari",
+          "sl": 4,
+          "wins": 8,
+          "losses": 0
+        },
+        {
+          "id": "sydney-lusche",
+          "name": "Sydney Lusche",
+          "sl": 4,
+          "wins": 4,
+          "losses": 2
+        },
+        {
+          "id": "florence-luu",
+          "name": "Florence Luu",
+          "sl": 3,
+          "wins": 3,
+          "losses": 7
+        },
+        {
+          "id": "jose-belmontes",
+          "name": "Jose Belmontes",
+          "sl": 3,
+          "wins": 4,
+          "losses": 5
+        },
+        {
+          "id": "emily-ponce",
+          "name": "Emily Ponce",
+          "sl": 0,
+          "wins": null,
+          "losses": null
+        }
+      ]
+    },
+    {
+      "name": "NP Brew Crew",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "christopher-bender",
+          "name": "Christopher Bender",
+          "sl": 5,
+          "wins": 7,
+          "losses": 3
+        },
+        {
+          "id": "linden-lindsay",
+          "name": "Linden Lindsay",
+          "sl": 4,
+          "wins": 8,
+          "losses": 10
+        },
+        {
+          "id": "kirk-johnson",
+          "name": "Kirk Johnson",
+          "sl": 3,
+          "wins": 4,
+          "losses": 6
+        },
+        {
+          "id": "connor-lutge",
+          "name": "Connor Lutge",
+          "sl": 2,
+          "wins": 0,
+          "losses": 7
+        },
+        {
+          "id": "kayleigh-gruen",
+          "name": "Kayleigh Gruen",
+          "sl": 2,
+          "wins": 0,
+          "losses": 3
+        }
+      ]
+    },
+    {
+      "name": "Borderline Bandits",
+      "isThisWeek": true,
+      "players": [
+        {
+          "id": "charles-castner",
+          "name": "Charles Castner",
+          "sl": 6,
+          "wins": 5,
+          "losses": 5
+        },
+        {
+          "id": "joseph-kyle",
+          "name": "Joseph Kyle",
+          "sl": 6,
+          "wins": 7,
+          "losses": 5
+        },
+        {
+          "id": "kyle-thorsen",
+          "name": "Kyle Thorsen",
+          "sl": 5,
+          "wins": 0,
+          "losses": 1
+        },
+        {
+          "id": "lawrence-pitman",
+          "name": "Lawrence Pitman",
+          "sl": 4,
+          "wins": 5,
+          "losses": 5
+        },
+        {
+          "id": "linda-anschultz",
+          "name": "Linda Anschultz",
+          "sl": 4,
+          "wins": 1,
+          "losses": 6
+        },
+        {
+          "id": "michelle-richards",
+          "name": "Michelle Richards",
+          "sl": 4,
+          "wins": 0,
+          "losses": 2
+        },
+        {
+          "id": "thomas-moran",
+          "name": "Thomas Moran",
+          "sl": 4,
+          "wins": 8,
+          "losses": 1
+        },
+        {
+          "id": "judy-carver",
+          "name": "Judy Carver",
+          "sl": 3,
+          "wins": 6,
+          "losses": 6
+        }
+      ]
+    },
+    {
+      "name": "Pocket Stuffers",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "mike-lin",
+          "name": "Mike Lin",
+          "sl": 7,
+          "wins": 10,
+          "losses": 3
+        },
+        {
+          "id": "mckenna-murphy",
+          "name": "McKenna Murphy",
+          "sl": 5,
+          "wins": 2,
+          "losses": 6
+        },
+        {
+          "id": "mike-boal",
+          "name": "Mike Boal",
+          "sl": 4,
+          "wins": 0,
+          "losses": 2
+        },
+        {
+          "id": "tim-meicher",
+          "name": "Tim Meicher",
+          "sl": 4,
+          "wins": 6,
+          "losses": 6
+        },
+        {
+          "id": "anneke-meicher",
+          "name": "Anneke Meicher",
+          "sl": 3,
+          "wins": 5,
+          "losses": 3
+        },
+        {
+          "id": "christina-miller",
+          "name": "Christina Miller",
+          "sl": 3,
+          "wins": 5,
+          "losses": 6
+        },
+        {
+          "id": "elizabeth-mundell",
+          "name": "Elizabeth Mundell",
+          "sl": 3,
+          "wins": 1,
+          "losses": 2
+        },
+        {
+          "id": "nicole-perez",
+          "name": "Nicole Perez",
+          "sl": 3,
+          "wins": 2,
+          "losses": 6
+        }
+      ]
+    },
+    {
+      "name": "Rack'em Up",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "david-arenas",
+          "name": "David Arenas",
+          "sl": 5,
+          "wins": 3,
+          "losses": 9
+        },
+        {
+          "id": "jan-lebeau",
+          "name": "Jan LeBeau",
+          "sl": 5,
+          "wins": 12,
+          "losses": 8
+        },
+        {
+          "id": "joanne-bodenhamer",
+          "name": "Joanne Bodenhamer",
+          "sl": 5,
+          "wins": 7,
+          "losses": 12
+        },
+        {
+          "id": "scott-robinson",
+          "name": "Scott Robinson",
+          "sl": 5,
+          "wins": 10,
+          "losses": 8
+        },
+        {
+          "id": "jesse-bodenhamer",
+          "name": "Jesse Bodenhamer",
+          "sl": 4,
+          "wins": 0,
+          "losses": 2
+        },
+        {
+          "id": "evy-schultz",
+          "name": "Evy Schultz",
+          "sl": 3,
+          "wins": 5,
+          "losses": 5
+        },
+        {
+          "id": "kecia-davis",
+          "name": "Kecia Davis",
+          "sl": 3,
+          "wins": 2,
+          "losses": 3
+        },
+        {
+          "id": "kim-esseff",
+          "name": "Kim Esseff",
+          "sl": 2,
+          "wins": 4,
+          "losses": 2
+        }
+      ]
+    },
+    {
+      "name": "Easy Eights",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "brandon-boone",
+          "name": "Brandon Boone",
+          "sl": 5,
+          "wins": 7,
+          "losses": 1
+        },
+        {
+          "id": "charles-fewell",
+          "name": "Charles Fewell",
+          "sl": 5,
+          "wins": 9,
+          "losses": 12
+        },
+        {
+          "id": "janna-hodgkins",
+          "name": "Janna Hodgkins",
+          "sl": 5,
+          "wins": 0,
+          "losses": 5
+        },
+        {
+          "id": "robert-hodgkins",
+          "name": "Robert Hodgkins",
+          "sl": 5,
+          "wins": 2,
+          "losses": 2
+        },
+        {
+          "id": "john-moreira",
+          "name": "John Moreira",
+          "sl": 4,
+          "wins": 10,
+          "losses": 10
+        },
+        {
+          "id": "margaret-hammond",
+          "name": "Margaret Hammond",
+          "sl": 3,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "melissa-cota",
+          "name": "Melissa Cota",
+          "sl": 3,
+          "wins": 5,
+          "losses": 3
+        }
+      ]
+    },
+    {
+      "name": "Nice Rack",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "caroline-enciso",
+          "name": "Caroline Enciso",
+          "sl": 6,
+          "wins": 3,
+          "losses": 6
+        },
+        {
+          "id": "ceyda-cehreli",
+          "name": "Ceyda Cehreli",
+          "sl": 5,
+          "wins": 6,
+          "losses": 11
+        },
+        {
+          "id": "danielle-romo",
+          "name": "Danielle Romo",
+          "sl": 4,
+          "wins": 4,
+          "losses": 3
+        },
+        {
+          "id": "erica-benvenuto",
+          "name": "Erica Benvenuto",
+          "sl": 4,
+          "wins": 9,
+          "losses": 8
+        },
+        {
+          "id": "miranda-gargiulo",
+          "name": "Miranda Gargiulo",
+          "sl": 4,
+          "wins": 6,
+          "losses": 14
+        },
+        {
+          "id": "rachel-welter",
+          "name": "Rachel Welter",
+          "sl": 4,
+          "wins": 0,
+          "losses": 7
+        },
+        {
+          "id": "peyton-meintzer",
+          "name": "Peyton Meintzer",
+          "sl": 2,
+          "wins": 0,
+          "losses": 6
+        },
+        {
+          "id": "hannah-walker",
+          "name": "Hannah Walker",
+          "sl": 0,
+          "wins": null,
+          "losses": null
+        }
+      ]
+    }
+  ],
+  "ctrl-alt-defeat": [
+    {
+      "name": "Cueless 9",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "alexander-lowe",
+          "name": "Alexander Lowe",
+          "sl": 7,
+          "wins": 5,
+          "losses": 3
+        },
+        {
+          "id": "danney-partlow",
+          "name": "Danney Partlow",
+          "sl": 6,
+          "wins": 7,
+          "losses": 1
+        },
+        {
+          "id": "jerry-gaston",
+          "name": "Jerry Gaston",
+          "sl": 6,
+          "wins": 3,
+          "losses": 5
+        },
+        {
+          "id": "trent-perino",
+          "name": "Trent Perino",
+          "sl": 6,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "johnalan-linhorst",
+          "name": "Johnalan Linhorst",
+          "sl": 4,
+          "wins": 8,
+          "losses": 1
+        },
+        {
+          "id": "aj-morales",
+          "name": "AJ Morales",
+          "sl": 3,
+          "wins": 5,
+          "losses": 3
+        },
+        {
+          "id": "chris-eastin",
+          "name": "Chris Eastin",
+          "sl": 3,
+          "wins": 13,
+          "losses": 7
+        },
+        {
+          "id": "alice-paperno-gaston",
+          "name": "Alice Paperno-Gaston",
+          "sl": 2,
+          "wins": 4,
+          "losses": 1
+        }
+      ]
+    },
+    {
+      "name": "I Must Break Cue",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "duff-lin",
+          "name": "Duff Lin",
+          "sl": 9,
+          "wins": 1,
+          "losses": 4
+        },
+        {
+          "id": "caroline-enciso",
+          "name": "Caroline Enciso",
+          "sl": 7,
+          "wins": 7,
+          "losses": 3
+        },
+        {
+          "id": "scott-robinson",
+          "name": "Scott Robinson",
+          "sl": 6,
+          "wins": 5,
+          "losses": 3
+        },
+        {
+          "id": "ceyda-cehreli",
+          "name": "Ceyda Cehreli",
+          "sl": 5,
+          "wins": 6,
+          "losses": 5
+        },
+        {
+          "id": "christina-miller",
+          "name": "Christina Miller",
+          "sl": 3,
+          "wins": 6,
+          "losses": 2
+        },
+        {
+          "id": "jose-belmontes",
+          "name": "Jose Belmontes",
+          "sl": 3,
+          "wins": 6,
+          "losses": 1
+        },
+        {
+          "id": "sarah-lin",
+          "name": "Sarah Lin",
+          "sl": 3,
+          "wins": 6,
+          "losses": 2
+        },
+        {
+          "id": "anneke-meicher",
+          "name": "Anneke Meicher",
+          "sl": 1,
+          "wins": 4,
+          "losses": 4
+        }
+      ]
+    },
+    {
+      "name": "Pooltergeist",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "vern-rayta",
+          "name": "Vern Rayta",
+          "sl": 9,
+          "wins": 1,
+          "losses": 1
+        },
+        {
+          "id": "ted-rogoff",
+          "name": "Ted Rogoff",
+          "sl": 6,
+          "wins": 5,
+          "losses": 5
+        },
+        {
+          "id": "colin-white",
+          "name": "Colin White",
+          "sl": 5,
+          "wins": 4,
+          "losses": 4
+        },
+        {
+          "id": "debby-day",
+          "name": "Debby Day",
+          "sl": 5,
+          "wins": 4,
+          "losses": 4
+        },
+        {
+          "id": "kylie-nelson",
+          "name": "Kylie Nelson",
+          "sl": 4,
+          "wins": 4,
+          "losses": 3
+        },
+        {
+          "id": "seana-rayta",
+          "name": "Seana Rayta",
+          "sl": 4,
+          "wins": 7,
+          "losses": 2
+        },
+        {
+          "id": "andres-ramacho",
+          "name": "Andres Ramacho",
+          "sl": 3,
+          "wins": 5,
+          "losses": 5
+        },
+        {
+          "id": "daniel-farag",
+          "name": "Daniel Farag",
+          "sl": 0,
+          "wins": null,
+          "losses": null
+        }
+      ]
+    },
+    {
+      "name": "No Ducks Given",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "mike-lin",
+          "name": "Mike Lin",
+          "sl": 9,
+          "wins": 4,
+          "losses": 2
+        },
+        {
+          "id": "kelly-lin",
+          "name": "Kelly Lin",
+          "sl": 8,
+          "wins": 2,
+          "losses": 5
+        },
+        {
+          "id": "joanne-bodenhamer",
+          "name": "Joanne Bodenhamer",
+          "sl": 5,
+          "wins": 7,
+          "losses": 2
+        },
+        {
+          "id": "jordan-le",
+          "name": "Jordan Le",
+          "sl": 5,
+          "wins": 6,
+          "losses": 2
+        },
+        {
+          "id": "robert-sweeting",
+          "name": "Robert Sweeting",
+          "sl": 4,
+          "wins": 3,
+          "losses": 3
+        },
+        {
+          "id": "sydney-lusche",
+          "name": "Sydney Lusche",
+          "sl": 4,
+          "wins": 7,
+          "losses": 3
+        },
+        {
+          "id": "florence-luu",
+          "name": "Florence Luu",
+          "sl": 2,
+          "wins": 3,
+          "losses": 4
+        },
+        {
+          "id": "jessica-averill",
+          "name": "Jessica Averill",
+          "sl": 2,
+          "wins": 3,
+          "losses": 4
+        }
+      ]
+    },
+    {
+      "name": "Wolfpack 9",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "jesse-ramirez",
+          "name": "Jesse Ramirez",
+          "sl": 8,
+          "wins": 1,
+          "losses": 5
+        },
+        {
+          "id": "alexander-reyes",
+          "name": "Alexander Reyes",
+          "sl": 6,
+          "wins": 6,
+          "losses": 3
+        },
+        {
+          "id": "felix-katz",
+          "name": "Felix Katz",
+          "sl": 6,
+          "wins": 5,
+          "losses": 0
+        },
+        {
+          "id": "hernan-mora",
+          "name": "Hernan Mora",
+          "sl": 4,
+          "wins": 7,
+          "losses": 2
+        },
+        {
+          "id": "lori-perry",
+          "name": "Lori Perry",
+          "sl": 4,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "enrique-villar",
+          "name": "Enrique Villar",
+          "sl": 3,
+          "wins": 3,
+          "losses": 2
+        },
+        {
+          "id": "william-lozano",
+          "name": "William Lozano",
+          "sl": 3,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "roland-hudgins",
+          "name": "Roland Hudgins",
+          "sl": 2,
+          "wins": 6,
+          "losses": 7
+        }
+      ]
+    },
+    {
+      "name": "Rollin' Racks",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "shantaram-parab",
+          "name": "Shantaram Parab",
+          "sl": 9,
+          "wins": 5,
+          "losses": 1
+        },
+        {
+          "id": "jay-wetherald",
+          "name": "Jay Wetherald",
+          "sl": 7,
+          "wins": 3,
+          "losses": 3
+        },
+        {
+          "id": "cami-ladin",
+          "name": "Cami Ladin",
+          "sl": 5,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "robert-delellis",
+          "name": "Robert DeLellis",
+          "sl": 5,
+          "wins": 4,
+          "losses": 5
+        },
+        {
+          "id": "greg-moeller",
+          "name": "Greg Moeller",
+          "sl": 4,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "lisa-wetherald",
+          "name": "Lisa Wetherald",
+          "sl": 2,
+          "wins": 4,
+          "losses": 5
+        },
+        {
+          "id": "pratiksha-parab",
+          "name": "Pratiksha Parab",
+          "sl": 2,
+          "wins": 4,
+          "losses": 5
+        },
+        {
+          "id": "geno-hunt",
+          "name": "Geno Hunt",
+          "sl": 0,
+          "wins": null,
+          "losses": null
+        }
+      ]
+    },
+    {
+      "name": "Kamikaze Katz",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "dennis-bolaoen",
+          "name": "Dennis Bolaoen",
+          "sl": 7,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "laurie-butera",
+          "name": "Laurie Butera",
+          "sl": 7,
+          "wins": 3,
+          "losses": 4
+        },
+        {
+          "id": "thomas-hardinger",
+          "name": "Thomas Hardinger",
+          "sl": 7,
+          "wins": 11,
+          "losses": 4
+        },
+        {
+          "id": "brandon-flynn",
+          "name": "Brandon Flynn",
+          "sl": 4,
+          "wins": 6,
+          "losses": 9
+        },
+        {
+          "id": "brandon-calderon",
+          "name": "Brandon Calderon",
+          "sl": 3,
+          "wins": 8,
+          "losses": 6
+        },
+        {
+          "id": "joshua-cunningham",
+          "name": "Joshua Cunningham",
+          "sl": 3,
+          "wins": 8,
+          "losses": 8
+        },
+        {
+          "id": "shannon-sporn",
+          "name": "Shannon Sporn",
+          "sl": 3,
+          "wins": 4,
+          "losses": 4
+        },
+        {
+          "id": "allison-knudsen",
+          "name": "Allison Knudsen",
+          "sl": 2,
+          "wins": 4,
+          "losses": 6
+        }
+      ]
+    },
+    {
+      "name": "Busting 9-Balls",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "phil-king",
+          "name": "Phil King",
+          "sl": 7,
+          "wins": 4,
+          "losses": 3
+        },
+        {
+          "id": "wendy-kamaluddin",
+          "name": "Wendy Kamaluddin",
+          "sl": 7,
+          "wins": 4,
+          "losses": 2
+        },
+        {
+          "id": "billy-ramos",
+          "name": "Billy Ramos",
+          "sl": 6,
+          "wins": 5,
+          "losses": 2
+        },
+        {
+          "id": "james-gouda",
+          "name": "James Gouda",
+          "sl": 6,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "allen-sutton",
+          "name": "Allen Sutton",
+          "sl": 4,
+          "wins": 4,
+          "losses": 5
+        },
+        {
+          "id": "joseph-gonzalez",
+          "name": "Joseph Gonzalez",
+          "sl": 3,
+          "wins": 3,
+          "losses": 8
+        },
+        {
+          "id": "dianne-guarino",
+          "name": "Dianne Guarino",
+          "sl": 2,
+          "wins": 4,
+          "losses": 4
+        },
+        {
+          "id": "kenneth-metcalf",
+          "name": "Kenneth Metcalf",
+          "sl": 2,
+          "wins": 3,
+          "losses": 6
+        }
+      ]
+    },
+    {
+      "name": "Rack N' Roll",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "joseph-le",
+          "name": "Joseph Le",
+          "sl": 9,
+          "wins": 2,
+          "losses": 1
+        },
+        {
+          "id": "luis-lopez",
+          "name": "Luis Lopez",
+          "sl": 6,
+          "wins": 2,
+          "losses": 9
+        },
+        {
+          "id": "martin-molina",
+          "name": "Martin Molina",
+          "sl": 6,
+          "wins": 3,
+          "losses": 8
+        },
+        {
+          "id": "jan-lebeau",
+          "name": "Jan LeBeau",
+          "sl": 4,
+          "wins": 7,
+          "losses": 2
+        },
+        {
+          "id": "peter-oberosler",
+          "name": "Peter Oberosler",
+          "sl": 4,
+          "wins": 5,
+          "losses": 3
+        },
+        {
+          "id": "gabriel-lee",
+          "name": "Gabriel Lee",
+          "sl": 3,
+          "wins": 4,
+          "losses": 5
+        },
+        {
+          "id": "kim-esseff",
+          "name": "Kim Esseff",
+          "sl": 3,
+          "wins": 3,
+          "losses": 2
+        },
+        {
+          "id": "darlene-johnson",
+          "name": "Darlene Johnson",
+          "sl": 1,
+          "wins": 0,
+          "losses": 5
+        }
+      ]
+    },
+    {
+      "name": "Hot Shots",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "victor-ibarra",
+          "name": "Victor Ibarra",
+          "sl": 7,
+          "wins": 1,
+          "losses": 6
+        },
+        {
+          "id": "barry-salvador",
+          "name": "Barry Salvador",
+          "sl": 6,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "ramsey-hassen",
+          "name": "Ramsey Hassen",
+          "sl": 6,
+          "wins": 3,
+          "losses": 1
+        },
+        {
+          "id": "dairene-orcales",
+          "name": "Dairene Orcales",
+          "sl": 5,
+          "wins": 2,
+          "losses": 7
+        },
+        {
+          "id": "daniela-aguilar",
+          "name": "Daniela Aguilar",
+          "sl": 3,
+          "wins": 7,
+          "losses": 5
+        },
+        {
+          "id": "joster-cabanilla",
+          "name": "Joster Cabanilla",
+          "sl": 3,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "raymond-martin",
+          "name": "Raymond Martin",
+          "sl": 3,
+          "wins": 5,
+          "losses": 5
+        },
+        {
+          "id": "robert-tallent",
+          "name": "Robert Tallent",
+          "sl": 2,
+          "wins": 2,
+          "losses": 3
+        }
+      ]
+    },
+    {
+      "name": "Land Sharks",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "richard-haydt",
+          "name": "Richard Haydt",
+          "sl": 9,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "ram-prasad",
+          "name": "Ram Prasad",
+          "sl": 8,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "mark-jones",
+          "name": "Mark Jones",
+          "sl": 5,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "stephen-harwin",
+          "name": "Stephen Harwin",
+          "sl": 4,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "arun-madhav",
+          "name": "Arun Madhav",
+          "sl": 3,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "raveendra-pasala",
+          "name": "Raveendra Pasala",
+          "sl": 3,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "robert-holmes",
+          "name": "Robert Holmes",
+          "sl": 3,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "vijay-kumar",
+          "name": "Vijay Kumar",
+          "sl": 3,
+          "wins": null,
+          "losses": null
+        }
+      ]
+    },
+    {
+      "name": "Outlaws",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "anthony-cota",
+          "name": "Anthony Cota",
+          "sl": 8,
+          "wins": 3,
+          "losses": 1
+        },
+        {
+          "id": "jason-krepel",
+          "name": "Jason Krepel",
+          "sl": 7,
+          "wins": 7,
+          "losses": 4
+        },
+        {
+          "id": "matthew-baker",
+          "name": "Matthew Baker",
+          "sl": 5,
+          "wins": 0,
+          "losses": 4
+        },
+        {
+          "id": "armando-cota-jr",
+          "name": "Armando Cota Jr",
+          "sl": 3,
+          "wins": 6,
+          "losses": 4
+        },
+        {
+          "id": "lawrence-pitman",
+          "name": "Lawrence Pitman",
+          "sl": 3,
+          "wins": 6,
+          "losses": 6
+        },
+        {
+          "id": "melissa-cota",
+          "name": "Melissa Cota",
+          "sl": 3,
+          "wins": 0,
+          "losses": 4
+        },
+        {
+          "id": "charmaigne-hanna-baker",
+          "name": "Charmaigne Hanna-Baker",
+          "sl": 0,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "robert-bohning",
+          "name": "Robert Bohning",
+          "sl": 0,
+          "wins": null,
+          "losses": null
+        }
+      ]
+    },
+    {
+      "name": "Sometimes Maybe Good",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "michael-hansen",
+          "name": "Michael Hansen",
+          "sl": 9,
+          "wins": 1,
+          "losses": 2
+        },
+        {
+          "id": "dan-natarelli",
+          "name": "Dan Natarelli",
+          "sl": 6,
+          "wins": 6,
+          "losses": 3
+        },
+        {
+          "id": "charles-fewell",
+          "name": "Charles Fewell",
+          "sl": 5,
+          "wins": 7,
+          "losses": 3
+        },
+        {
+          "id": "klarissia-hayter",
+          "name": "Klarissia Hayter",
+          "sl": 5,
+          "wins": 3,
+          "losses": 6
+        },
+        {
+          "id": "james-knoke",
+          "name": "James Knoke",
+          "sl": 3,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "jennifer-perez",
+          "name": "Jennifer Perez",
+          "sl": 3,
+          "wins": 5,
+          "losses": 7
+        },
+        {
+          "id": "millette-arredondo",
+          "name": "Millette Arredondo",
+          "sl": 2,
+          "wins": 5,
+          "losses": 7
+        },
+        {
+          "id": "robert-glatt",
+          "name": "Robert Glatt",
+          "sl": 0,
+          "wins": null,
+          "losses": null
+        }
+      ]
+    },
+    {
+      "name": "The Big-Le-Break-Ski",
+      "isThisWeek": false,
+      "players": [
+        {
+          "id": "chuck-torres",
+          "name": "Chuck Torres",
+          "sl": 6,
+          "wins": 4,
+          "losses": 1
+        },
+        {
+          "id": "greg-stanton",
+          "name": "Greg Stanton",
+          "sl": 5,
+          "wins": 3,
+          "losses": 3
+        },
+        {
+          "id": "omar-monter",
+          "name": "Omar Monter",
+          "sl": 5,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "scott-bryce",
+          "name": "Scott Bryce",
+          "sl": 5,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "michael-divindo",
+          "name": "Michael Divindo",
+          "sl": 4,
+          "wins": null,
+          "losses": null
+        },
+        {
+          "id": "phil-stanton",
+          "name": "Phil Stanton",
+          "sl": 4,
+          "wins": 0,
+          "losses": 5
+        },
+        {
+          "id": "april-turkalj",
+          "name": "April Turkalj",
+          "sl": 1,
+          "wins": 1,
+          "losses": 3
+        },
+        {
+          "id": "eric-evans",
+          "name": "Eric Evans",
+          "sl": 0,
+          "wins": null,
+          "losses": null
+        }
+      ]
+    },
+    {
+      "name": "Thunderbolts",
+      "isThisWeek": true,
+      "players": [
+        {
+          "id": "ruben-arvizo",
+          "name": "Ruben Arvizo",
+          "sl": 9,
+          "wins": 3,
+          "losses": 2
+        },
+        {
+          "id": "jaelen-rollins",
+          "name": "Jaelen Rollins",
+          "sl": 5,
+          "wins": 3,
+          "losses": 6
+        },
+        {
+          "id": "daniel-gad",
+          "name": "Daniel Gad",
+          "sl": 4,
+          "wins": 5,
+          "losses": 3
+        },
+        {
+          "id": "eddie-boughan",
+          "name": "Eddie Boughan",
+          "sl": 4,
+          "wins": 4,
+          "losses": 4
+        },
+        {
+          "id": "miguel-manzo",
+          "name": "Miguel Manzo",
+          "sl": 4,
+          "wins": 2,
+          "losses": 5
+        },
+        {
+          "id": "cole-nivens",
+          "name": "Cole Nivens",
+          "sl": 3,
+          "wins": 3,
+          "losses": 7
+        },
+        {
+          "id": "matthew-woldman",
+          "name": "Matthew Woldman",
+          "sl": 2,
+          "wins": 5,
+          "losses": 3
+        }
+      ]
+    }
+  ]
+}
